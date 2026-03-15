@@ -487,6 +487,7 @@
       <button class="strip-btn harm-seq-btn" onclick="setHarmonicPreset('octaves')" data-seq="octaves" style="font-size:9px; padding:1px 5px;">Oct</button>
       <button class="strip-btn harm-seq-btn" onclick="setHarmonicPreset('fifths')" data-seq="fifths" style="font-size:9px; padding:1px 5px;">5ths</button>
       <button class="strip-btn harm-seq-btn" onclick="setHarmonicPreset('scale')" data-seq="scale" style="font-size:9px; padding:1px 5px;">Scale</button>
+      <button class="strip-btn" onclick="activateGodCode()" style="font-size:9px; padding:1px 5px; background:linear-gradient(135deg,#d4a24e,#fff,#d4a24e); color:#000; font-weight:bold; text-shadow:0 0 4px rgba(255,215,0,0.8);" title="Supreme Illuminated Consciousness">✦ GOD</button>
     </div>
   </div>
 
@@ -911,6 +912,55 @@ function buildHarmonicToggles() {
     };
     container.appendChild(btn);
   }
+}
+
+function activateGodCode() {
+  // ✦ SUPREME ILLUMINATED CONSCIOUSNESS ✦
+  // All harmonics, Fibonacci timing, golden ratio decay, max depth,
+  // just intonation, full reverb, wide stereo, warm, sympathetic resonance
+  
+  // Flash the canvas gold
+  const c = document.getElementById('canvas');
+  if (c) { c.style.boxShadow = '0 0 60px rgba(212,162,78,0.8)'; setTimeout(() => c.style.boxShadow = '', 2000); }
+  
+  // Harmonics: ALL ON, max depth
+  harmonicsActive = true;
+  document.querySelectorAll('#s-harmonics-toggle, #harmonics-toggle').forEach(b => { b.textContent = 'ON'; b.classList.add('active'); });
+  setHarmonicPreset('all');
+  
+  // Set strip values
+  const godParams = {
+    's-depth': 12, 's-bloom': 0.8, 's-sym': 0.7, 's-predelay': 200,
+    's-echoes': 8, 's-decay': 0.75, 's-gap': 300,
+    's-reverb': 0.85, 's-width': 0.9, 's-warmth': 0.7,
+    's-drift': 0.15, 's-attack': 20, 's-adsr-decay': 800, 's-sustain': 0.6, 's-release': 2000
+  };
+  
+  Object.entries(godParams).forEach(([id, val]) => {
+    const el = document.getElementById(id);
+    if (el) { el.value = val; el.dispatchEvent(new Event('input')); }
+    // Also sync original
+    const origId = STRIP_MAP[id];
+    if (origId) { const orig = document.getElementById(origId); if (orig) { orig.value = val; } }
+    updateStripVal(id);
+  });
+  
+  // Fibonacci timing + Just Intonation
+  const seqBtns = document.querySelectorAll('.strip-btn[data-seq-mode]');
+  seqBtns.forEach(b => {
+    b.classList.toggle('active', b.dataset.seqMode === 'fibonacci');
+    if (b.dataset.seqMode === 'fibonacci') b.click?.();
+  });
+  currentSeqMode = 'fibonacci';
+  
+  // Set tuning to Just Intonation if available
+  const tuningBtns = document.querySelectorAll('.strip-btn[data-tuning]');
+  tuningBtns.forEach(b => {
+    b.classList.toggle('active', b.dataset.tuning === 'just');
+    if (b.dataset.tuning === 'just') b.click?.();
+  });
+  
+  console.log('✦ GOD CODE ACTIVATED ✦');
 }
 
 function setHarmonicPreset(preset) {
