@@ -1,0 +1,2881 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ripple Engine — Sacred Geometry Delay</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  
+  body {
+    background: #0a0a0f;
+    color: #d4a24e;
+    font-family: 'Courier New', monospace;
+    overflow: hidden;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  #header {
+    padding: 4px 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #1a1a2a;
+    z-index: 10;
+    flex-shrink: 0;
+  }
+
+  #header h1 {
+    font-size: 14px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+  }
+
+  #header .subtitle {
+    font-size: 9px;
+    color: #666;
+  }
+
+  /* Horizontal control strip */
+  #control-strip {
+    display: flex;
+    gap: 2px;
+    padding: 6px 8px;
+    border-bottom: 1px solid #1a1a2a;
+    background: #0d0d15;
+    flex-shrink: 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+    z-index: 10;
+    align-items: stretch;
+  }
+
+  .strip-section {
+    border: 1px solid #1a1a2a;
+    border-radius: 4px;
+    padding: 5px 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 0;
+    flex-shrink: 0;
+  }
+
+  .strip-section h4 {
+    font-size: 9px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: #d4a24e;
+    margin: 0;
+    white-space: nowrap;
+    text-align: center;
+    line-height: 1;
+  }
+
+  .strip-knobs {
+    display: flex;
+    gap: 6px;
+    align-items: flex-start;
+  }
+
+  .mini-knob {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 46px;
+    padding: 0 2px;
+  }
+
+  .mini-knob label {
+    font-size: 8px;
+    color: #666;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+    margin-bottom: 2px;
+    line-height: 1;
+  }
+
+  .mini-knob .mini-val {
+    font-size: 9px;
+    color: #d4a24e;
+    font-weight: bold;
+    margin-top: 2px;
+    line-height: 1;
+    white-space: nowrap;
+  }
+
+  .mini-knob input[type="range"] {
+    width: 42px;
+    -webkit-appearance: none;
+    height: 3px;
+    background: #1a1a2a;
+    border-radius: 2px;
+    outline: none;
+  }
+
+  .mini-knob input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 12px;
+    height: 12px;
+    background: #d4a24e;
+    border-radius: 50%;
+    cursor: pointer;
+  }
+
+  .strip-btns {
+    display: flex;
+    gap: 2px;
+    flex-wrap: wrap;
+  }
+
+  .strip-btn {
+    background: #1a1a2a;
+    border: 1px solid #2a2a3a;
+    color: #888;
+    padding: 2px 5px;
+    font-size: 7px;
+    font-family: 'Courier New', monospace;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    border-radius: 2px;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+
+  .strip-btn:hover { border-color: #d4a24e; color: #d4a24e; }
+  .strip-btn.active { background: #d4a24e; color: #0a0a0f; border-color: #d4a24e; }
+
+  #main {
+    flex: 1;
+    display: flex;
+    overflow: hidden;
+  }
+
+  /* Visualization canvas — now full width */
+  #viz-container {
+    flex: 1;
+    position: relative;
+  }
+
+  #vizCanvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+
+  /* Info overlay on canvas */
+  #pulse-info {
+    position: absolute;
+    top: 15px;
+    left: 15px;
+    font-size: 12px;
+    color: #555;
+    pointer-events: none;
+  }
+
+  #pulse-info .active {
+    color: #d4a24e;
+  }
+
+  /* Old panel hidden — controls moved to strip, but inputs must remain accessible */
+  #panel {
+    position: absolute;
+    left: -9999px;
+    width: 0;
+    height: 0;
+    overflow: hidden;
+    pointer-events: none;
+  }
+
+  .param label .val { color: #d4a24e; font-weight: bold; }
+
+  /* Preset buttons */
+  .presets {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+
+  .preset-btn {
+    background: #1a1a2a;
+    border: 1px solid #2a2a3a;
+    color: #888;
+    padding: 4px 8px;
+    font-size: 9px;
+    font-family: 'Courier New', monospace;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    cursor: pointer;
+    border-radius: 3px;
+    transition: all 0.2s;
+  }
+
+  .preset-btn:hover {
+    border-color: #d4a24e;
+    color: #d4a24e;
+  }
+
+  .preset-btn.active {
+    background: #d4a24e;
+    color: #0a0a0f;
+    border-color: #d4a24e;
+  }
+
+  .preset-btn.recording {
+    background: #c44;
+    color: #fff;
+    border-color: #c44;
+    animation: pulse-rec 1s infinite;
+  }
+
+  @keyframes pulse-rec {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.6; }
+  }
+
+  .preset-btn:disabled {
+    opacity: 0.3;
+    cursor: default;
+  }
+
+  /* Piano */
+  #piano-container {
+    height: 100px;
+    background: #0d0d15;
+    border-top: 1px solid #1a1a2a;
+    display: flex;
+    justify-content: center;
+    align-items: flex-end;
+    padding: 0 20px 8px;
+    position: relative;
+    z-index: 10;
+  }
+
+  #piano {
+    display: flex;
+    position: relative;
+    height: 85px;
+  }
+
+  .white-key {
+    width: 36px;
+    height: 85px;
+    background: linear-gradient(to bottom, #e8e8e8, #fff);
+    border: 1px solid #555;
+    border-radius: 0 0 4px 4px;
+    cursor: pointer;
+    position: relative;
+    z-index: 1;
+    transition: background 0.05s;
+  }
+
+  .white-key:hover { background: linear-gradient(to bottom, #ddd, #f0f0f0); }
+  .white-key.pressed { background: linear-gradient(to bottom, #d4a24e, #e8c070); }
+
+  .white-key .key-label {
+    position: absolute;
+    bottom: 4px;
+    width: 100%;
+    text-align: center;
+    font-size: 9px;
+    color: #999;
+    pointer-events: none;
+  }
+
+  .black-key {
+    width: 22px;
+    height: 55px;
+    background: linear-gradient(to bottom, #222, #111);
+    border: 1px solid #000;
+    border-radius: 0 0 3px 3px;
+    cursor: pointer;
+    position: absolute;
+    z-index: 2;
+    transition: background 0.05s;
+  }
+
+  .black-key:hover { background: linear-gradient(to bottom, #333, #222); }
+  .black-key.pressed { background: linear-gradient(to bottom, #b8862e, #d4a24e); }
+
+  /* Preset popup */
+  #preset-popup {
+    position: absolute;
+    bottom: 120px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(13, 13, 21, 0.95);
+    border: 1px solid #d4a24e;
+    border-radius: 8px;
+    padding: 16px 22px;
+    max-width: 400px;
+    z-index: 20;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+    backdrop-filter: blur(8px);
+  }
+
+  #preset-popup.visible {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  #preset-popup h4 {
+    font-size: 13px;
+    color: #d4a24e;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  #preset-popup .listen-for {
+    font-size: 12px;
+    color: #aaa;
+    line-height: 1.6;
+    margin-bottom: 6px;
+  }
+
+  #preset-popup .listen-for strong {
+    color: #d4a24e;
+  }
+
+  #preset-popup .hint {
+    font-size: 10px;
+    color: #555;
+    font-style: italic;
+    margin-top: 8px;
+  }
+
+  #preset-popup .close-popup {
+    position: absolute;
+    top: 8px;
+    right: 12px;
+    background: none;
+    border: none;
+    color: #555;
+    font-size: 14px;
+    cursor: pointer;
+    font-family: 'Courier New', monospace;
+  }
+
+  #preset-popup .close-popup:hover { color: #d4a24e; }
+
+  /* MIDI indicator */
+  #midi-status {
+    position: absolute;
+    top: 8px;
+    right: 20px;
+    font-size: 10px;
+    color: #333;
+    z-index: 10;
+  }
+
+  #midi-status.connected { color: #4a4; }
+
+  /* Harmonic spectrum display */
+  #spectrum-bar {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 280px;
+    height: 3px;
+    background: #0a0a0f;
+    display: flex;
+    z-index: 5;
+  }
+
+  .spectrum-band {
+    flex: 1;
+    background: transparent;
+    transition: background 0.1s;
+  }
+</style>
+</head>
+<body>
+
+<div id="header">
+  <div>
+    <h1>Ripple Engine</h1>
+    <div class="subtitle">sacred geometry delay · φ decay · fibonacci timing · harmonic resonance</div>
+  </div>
+  <div style="display:flex; align-items:center; gap:12px;">
+    <div id="midi-status">MIDI: scanning...</div>
+    <button id="midi-map-toggle" onclick="toggleMidiMap()" style="background:#1a1a2a; border:1px solid #333; color:#d4a24e; padding:4px 10px; border-radius:4px; cursor:pointer; font-size:11px; font-family:monospace;">🎛️ MIDI Map</button>
+  </div>
+
+  
+  <!-- MIDI MAPPING PANEL — Cobalt 8 Layout -->
+  <div id="midi-map-panel" style="display:none; position:fixed; top:20px; left:50%; transform:translateX(-50%); width:min(97vw, 1200px); background:linear-gradient(180deg, #0c1018 0%, #080c14 100%); border:1px solid #1a2a3a; border-radius:12px; padding:16px; z-index:200; font-size:12px; box-shadow: 0 12px 60px rgba(0,0,0,0.95); max-height:90vh; overflow-y:auto;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+      <span style="font-weight:bold; letter-spacing:3px; text-transform:uppercase; font-size:11px; color:#4488cc;">🎹 COBALT 8 → RIPPLE ENGINE</span>
+      <div style="display:flex; gap:8px; align-items:center;">
+        <button id="btn-midi-learn" class="preset-btn" onclick="toggleMidiLearnMode()" style="font-size:0.75em; padding:3px 10px;">🎛 MIDI Learn</button>
+        <button onclick="toggleMidiMap()" style="background:none; border:none; color:#666; cursor:pointer; font-size:18px;">✕</button>
+      </div>
+    </div>
+    
+    <div id="cobalt-panel">
+      <!-- Dynamically rendered by renderMidiMap() — Cobalt 8 physical panel mirror -->
+    </div>
+    
+    <div style="margin-top:8px; display:flex; align-items:center; gap:12px;">
+      <div id="midi-learn-status" style="font-size:0.7em; color:#555; flex:1;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- HORIZONTAL CONTROL STRIP -->
+<div id="control-strip">
+  
+  <!-- ENVELOPE -->
+  <div class="strip-section">
+    <h4>Envelope</h4>
+    <div class="strip-knobs">
+      <div class="mini-knob"><label>Att</label><input type="range" id="s-attack" min="1" max="500" step="1" value="5"><div class="mini-val" id="sv-attack">5</div></div>
+      <div class="mini-knob"><label>Dec</label><input type="range" id="s-adsr-decay" min="10" max="2000" step="10" value="300"><div class="mini-val" id="sv-adsr-decay">300</div></div>
+      <div class="mini-knob"><label>Sus</label><input type="range" id="s-sustain" min="0" max="1" step="0.01" value="0.4"><div class="mini-val" id="sv-sustain">.40</div></div>
+      <div class="mini-knob"><label>Rel</label><input type="range" id="s-release" min="50" max="5000" step="50" value="1500"><div class="mini-val" id="sv-release">1500</div></div>
+    </div>
+  </div>
+
+  <!-- DECAY -->
+  <div class="strip-section">
+    <h4>φ Decay</h4>
+    <div class="strip-knobs">
+      <div class="mini-knob"><label>Ratio</label><input type="range" id="s-decay" min="0.1" max="0.95" step="0.001" value="0.618"><div class="mini-val" id="sv-decay">.618</div></div>
+      <div class="mini-knob"><label>Echo</label><input type="range" id="s-echoes" min="1" max="21" step="1" value="7"><div class="mini-val" id="sv-echoes">7</div></div>
+      <div class="mini-knob"><label>Drift</label><input type="range" id="s-drift" min="0" max="1" step="0.01" value="0.5"><div class="mini-val" id="sv-drift">.50</div></div>
+    </div>
+  </div>
+
+  <!-- TIMING -->
+  <div class="strip-section">
+    <h4>Timing</h4>
+    <div class="strip-knobs">
+      <div class="mini-knob"><label>Gap</label><input type="range" id="s-gap" min="30" max="3000" step="10" value="120"><div class="mini-val" id="sv-gap">120</div></div>
+      <div class="mini-knob"><label>QWin</label><input type="range" id="s-qwindow" min="50" max="1000" step="25" value="200"><div class="mini-val" id="sv-qwindow">200</div></div>
+    </div>
+    <div class="strip-btns" id="s-seq-presets">
+      <button class="strip-btn active" data-seq="fibonacci">Fib</button>
+      <button class="strip-btn" data-seq="golden">Gold</button>
+      <button class="strip-btn" data-seq="linear">Lin</button>
+      <button class="strip-btn" data-seq="log">Log</button>
+    </div>
+    <div class="strip-btns" style="margin-top:2px;">
+      <button class="strip-btn" id="s-btn-quantize" onclick="toggleQuantize(); document.getElementById('s-btn-quantize').classList.toggle('active', quantizeEnabled);">Quantize</button>
+    </div>
+  </div>
+
+  <!-- HARMONICS -->
+  <div class="strip-section">
+    <h4>Harmonics <button id="s-harmonics-toggle" class="strip-btn" style="margin-left:4px;" onclick="toggleHarmonics()">OFF</button></h4>
+    <div class="strip-knobs">
+      <div class="mini-knob"><label>Depth</label><input type="range" id="s-depth" min="0" max="12" step="1" value="6"><div class="mini-val" id="sv-depth">6</div></div>
+      <div class="mini-knob"><label>Bloom</label><input type="range" id="s-bloom" min="0" max="1" step="0.01" value="0.4"><div class="mini-val" id="sv-bloom">.40</div></div>
+      <div class="mini-knob"><label>Pre</label><input type="range" id="s-predelay" min="0" max="800" step="10" value="150"><div class="mini-val" id="sv-predelay">150</div></div>
+      <div class="mini-knob"><label>Sym</label><input type="range" id="s-sym" min="0" max="1" step="0.01" value="0.3"><div class="mini-val" id="sv-sym">.30</div></div>
+    </div>
+  </div>
+
+  <!-- SPACE -->
+  <div class="strip-section">
+    <h4>Space</h4>
+    <div class="strip-knobs">
+      <div class="mini-knob"><label>Verb</label><input type="range" id="s-reverb" min="0" max="1" step="0.01" value="0.4"><div class="mini-val" id="sv-reverb">.40</div></div>
+      <div class="mini-knob"><label>Wide</label><input type="range" id="s-width" min="0" max="1" step="0.01" value="0.5"><div class="mini-val" id="sv-width">.50</div></div>
+      <div class="mini-knob"><label>Warm</label><input type="range" id="s-warmth" min="0" max="1" step="0.01" value="0.3"><div class="mini-val" id="sv-warmth">.30</div></div>
+    </div>
+  </div>
+
+  <!-- MODE -->
+  <div class="strip-section">
+    <h4>Mode</h4>
+    <div class="strip-btns">
+      <button class="strip-btn active" data-notemode="ripple" onclick="setNoteMode('ripple'); document.querySelectorAll('[data-notemode]').forEach(b=>b.classList.toggle('active',b.dataset.notemode==='ripple'))">🪼 Ripple</button>
+      <button class="strip-btn" data-notemode="harmonic-bloom" onclick="setNoteMode('harmonic-bloom'); document.querySelectorAll('[data-notemode]').forEach(b=>b.classList.toggle('active',b.dataset.notemode==='harmonic-bloom'))">🌸 Bloom</button>
+    </div>
+    <div class="strip-btns" style="margin-top:2px;">
+      <button class="strip-btn active" data-tuning="et440" onclick="setTuning('et440'); document.querySelectorAll('[data-tuning]').forEach(b=>b.classList.toggle('active',b.dataset.tuning==='et440'))">440</button>
+      <button class="strip-btn" data-tuning="et432" onclick="setTuning('et432'); document.querySelectorAll('[data-tuning]').forEach(b=>b.classList.toggle('active',b.dataset.tuning==='et432'))">432</button>
+      <button class="strip-btn" data-tuning="just" onclick="setTuning('just'); document.querySelectorAll('[data-tuning]').forEach(b=>b.classList.toggle('active',b.dataset.tuning==='just'))">Just</button>
+    </div>
+  </div>
+
+  <!-- PRESETS -->
+  <div class="strip-section">
+    <h4>Presets</h4>
+    <div class="strip-btns">
+      <button class="strip-btn" id="s-pre-pure">Pure</button>
+      <button class="strip-btn" id="s-pre-bell">Bell</button>
+      <button class="strip-btn" id="s-pre-pluck">Pluck</button>
+      <button class="strip-btn" id="s-pre-bowl">Bowl</button>
+      <button class="strip-btn" id="s-pre-pad">Pad</button>
+    </div>
+    <div class="strip-btns" style="margin-top:2px;">
+      <button class="strip-btn" id="s-pre-drip">Drip</button>
+      <button class="strip-btn" id="s-pre-cathedral">Cath</button>
+      <button class="strip-btn" id="s-pre-spiral">Spiral</button>
+      <button class="strip-btn" id="s-pre-deep">Deep</button>
+      <button class="strip-btn" id="s-pre-fripp">Fripp</button>
+    </div>
+  </div>
+
+  <!-- TRANSPORT -->
+  <div class="strip-section">
+    <h4>Loop</h4>
+    <div class="strip-btns">
+      <button class="strip-btn" id="s-seq-record">⏺</button>
+      <button class="strip-btn" id="s-seq-play" disabled>▶</button>
+      <button class="strip-btn" id="s-seq-stop" disabled>⏹</button>
+    </div>
+    <div class="strip-knobs" style="margin-top:2px;">
+      <div class="mini-knob"><label>Speed</label><input type="range" id="s-loopspeed" min="0.25" max="2" step="0.05" value="1"><div class="mini-val" id="sv-loopspeed">1.0</div></div>
+    </div>
+  </div>
+
+  <!-- MIDI -->
+  <div class="strip-section">
+    <h4>MIDI</h4>
+    <div class="strip-btns">
+      <button class="strip-btn" onclick="toggleMidiMap()">🎛️ Map</button>
+      <button class="strip-btn" id="s-btn-midi-learn" onclick="toggleMidiLearnMode()">Learn</button>
+      <button class="strip-btn" onclick="panicStop()" style="color:#c44;">🔇</button>
+      <button class="strip-btn" onclick="captureRecorder?.state==='recording' ? stopCapture() : startCapture()" style="color:#c44;">⏺</button>
+    </div>
+    <div style="font-size:7px; color:#333; margin-top:2px;" id="s-midi-status">scanning...</div>
+  </div>
+</div>
+
+<div id="main">
+  <div id="viz-container">
+    <canvas id="vizCanvas"></canvas>
+    <div id="pulse-info">
+      <div id="info-note">—</div>
+      <div id="info-echo">—</div>
+      <div id="info-harmonics">—</div>
+    </div>
+    <div id="tone-counter" style="position:absolute; top:15px; right:15px; font-size:24px; color:#d4a24e; font-family:monospace; z-index:20; pointer-events:none;">T:0</div>
+
+  </div>
+
+  <div id="panel">
+    <!-- ADSR -->
+    <div class="param-group">
+      <h3>Envelope (ADSR)</h3>
+      <div class="param">
+        <label>Attack (ms) <span class="val" id="val-attack">5</span></label>
+        <input type="range" id="attack" min="1" max="500" step="1" value="5">
+      </div>
+      <div class="param">
+        <label>Decay (ms) <span class="val" id="val-adsr-decay">300</span></label>
+        <input type="range" id="adsr-decay" min="10" max="2000" step="10" value="300">
+      </div>
+      <div class="param">
+        <label>Sustain <span class="val" id="val-sustain">0.4</span></label>
+        <input type="range" id="sustain" min="0" max="1" step="0.01" value="0.4">
+      </div>
+      <div class="param">
+        <label>Release (ms) <span class="val" id="val-release">1500</span></label>
+        <input type="range" id="release" min="50" max="5000" step="50" value="1500">
+      </div>
+    </div>
+
+    <!-- Decay -->
+    <div class="param-group">
+      <h3>φ Decay</h3>
+      <div class="param">
+        <label>Decay Ratio <span class="val" id="val-decay">0.618</span></label>
+        <input type="range" id="decay" min="0.1" max="0.95" step="0.001" value="0.618">
+      </div>
+      <div class="param">
+        <label>Echoes <span class="val" id="val-echoes">7</span></label>
+        <input type="range" id="echoes" min="1" max="21" step="1" value="7">
+      </div>
+      <div class="param">
+        <label>Spectral Drift <span class="val" id="val-drift">0.5</span></label>
+        <input type="range" id="drift" min="0" max="1" step="0.01" value="0.5">
+      </div>
+    </div>
+
+    <!-- Fibonacci Timing -->
+    <div class="param-group">
+      <h3>Fibonacci Timing</h3>
+      <div class="param">
+        <label>Base Gap (ms) <span class="val" id="val-gap">120</span></label>
+        <input type="range" id="gap" min="30" max="3000" step="10" value="120">
+      </div>
+      <div class="param">
+        <label>Sequence Mode <span class="val" id="val-seq">fibonacci</span></label>
+        <div class="presets" id="seq-presets">
+          <button class="preset-btn active" data-seq="fibonacci">Fibonacci</button>
+          <button class="preset-btn" data-seq="golden">Golden</button>
+          <button class="preset-btn" data-seq="linear">Linear</button>
+          <button class="preset-btn" data-seq="log">Log</button>
+        </div>
+      </div>
+      <div class="param">
+        <label>Bloom Quantize <span class="val" id="val-quantize">OFF</span></label>
+        <button class="preset-btn" id="btn-quantize" onclick="toggleQuantize()" style="width:100%">OFF — free play</button>
+        <label style="margin-top:4px; font-size:0.7em; opacity:0.5">Snaps your input to the nearest bloom grid point</label>
+      </div>
+      <div class="param">
+        <label>Quantize Window (ms) <span class="val" id="val-qwindow">200</span></label>
+        <input type="range" id="qwindow" min="50" max="1000" step="25" value="200">
+      </div>
+    </div>
+
+    <!-- Tuning -->
+    <div class="param-group">
+      <h3>Tuning <span class="val" id="val-tuning">440Hz ET</span></h3>
+      <div class="param">
+        <div class="presets" id="tuning-presets">
+          <button class="preset-btn active" data-tuning="et440" onclick="setTuning('et440')">440 ET</button>
+          <button class="preset-btn" data-tuning="et432" onclick="setTuning('et432')">432 ET</button>
+          <button class="preset-btn" data-tuning="just" onclick="setTuning('just')">Just</button>
+        </div>
+        <label style="margin-top:4px; font-size:0.7em; opacity:0.5">ET = equal temperament · Just = pure harmonic ratios (best for one key)</label>
+      </div>
+    </div>
+
+    <!-- Note Mode -->
+    <div class="param-group">
+      <h3>Note Mode</h3>
+      <div class="param">
+        <div class="presets" id="note-mode-presets">
+          <button class="preset-btn active" data-notemode="ripple" onclick="setNoteMode('ripple')">🪼 Ripple</button>
+          <button class="preset-btn" data-notemode="harmonic-bloom" onclick="setNoteMode('harmonic-bloom')">🌸 Harmonic Bloom</button>
+        </div>
+        <label style="margin-top:4px; font-size:0.7em; opacity:0.5" id="note-mode-desc">Same note echoes in Fibonacci timing</label>
+      </div>
+      <div id="harmonic-bloom-controls" style="display:none;">
+        <div class="param">
+          <label>Bloom Harmonics <span class="val" id="val-bloom-count">8</span></label>
+          <input type="range" id="bloom-count" min="2" max="16" step="1" value="8">
+        </div>
+        <div class="param" style="margin-top:6px;">
+          <label style="font-size:0.75em; opacity:0.7;">Harmonic Series Toggle</label>
+          <div id="harmonic-toggles" style="display:flex; flex-wrap:wrap; gap:3px; margin-top:4px;">
+          </div>
+        </div>
+        <div class="param" style="margin-top:6px;">
+          <label style="font-size:0.7em; opacity:0.5;">Presets:</label>
+          <div class="presets" style="margin-top:3px;">
+            <button class="preset-btn" onclick="setHarmonicPreset('all')">All</button>
+            <button class="preset-btn" onclick="setHarmonicPreset('odd')">Odd</button>
+            <button class="preset-btn" onclick="setHarmonicPreset('even')">Even</button>
+            <button class="preset-btn" onclick="setHarmonicPreset('prime')">Prime</button>
+            <button class="preset-btn" onclick="setHarmonicPreset('octaves')">Octaves</button>
+            <button class="preset-btn" onclick="setHarmonicPreset('fifths')">Fifths</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Harmonics -->
+    <div class="param-group">
+      <h3>Harmonic Content
+        <button id="harmonics-toggle" class="preset-btn" style="margin-left:8px; font-size:0.75em; padding:2px 8px; opacity:0.5;" onclick="toggleHarmonics()">OFF</button>
+      </h3>
+      <div class="param">
+        <label>Overtone Depth <span class="val" id="val-depth">6</span></label>
+        <input type="range" id="depth" min="0" max="12" step="1" value="6">
+      </div>
+      <div class="param">
+        <label>Overtone Bloom <span class="val" id="val-bloom">0.4</span></label>
+        <input type="range" id="bloom" min="0" max="1" step="0.01" value="0.4">
+      </div>
+      <div class="param">
+        <label>Bloom Predelay (ms) <span class="val" id="val-predelay">150</span></label>
+        <input type="range" id="predelay" min="0" max="800" step="10" value="150">
+      </div>
+      <div class="param">
+        <label>Sympathetic Res. <span class="val" id="val-sym">0.3</span></label>
+        <input type="range" id="sym" min="0" max="1" step="0.01" value="0.3">
+      </div>
+    </div>
+
+    <!-- Space -->
+    <div class="param-group">
+      <h3>Space</h3>
+      <div class="param">
+        <label>Reverb <span class="val" id="val-reverb">0.4</span></label>
+        <input type="range" id="reverb" min="0" max="1" step="0.01" value="0.4">
+      </div>
+      <div class="param">
+        <label>Stereo Width <span class="val" id="val-width">0.5</span></label>
+        <input type="range" id="width" min="0" max="1" step="0.01" value="0.5">
+      </div>
+      <div class="param">
+        <label>Warmth <span class="val" id="val-warmth">0.3</span></label>
+        <input type="range" id="warmth" min="0" max="1" step="0.01" value="0.3">
+      </div>
+    </div>
+
+    <!-- Sequencer -->
+    <div class="param-group">
+      <h3>Sequence Loop</h3>
+      <div id="seq-controls" style="display:flex; gap:6px; margin-bottom:10px;">
+        <button class="preset-btn" id="seq-record" style="flex:1; padding:6px;">⏺ Record</button>
+        <button class="preset-btn" id="seq-play" style="flex:1; padding:6px;" disabled>▶ Play</button>
+        <button class="preset-btn" id="seq-stop" style="flex:1; padding:6px;" disabled>⏹ Stop</button>
+      </div>
+      <div id="seq-info" style="font-size:10px; color:#555;">
+        Hit Record, play a phrase, hit Record again to set the loop.
+      </div>
+      <div id="seq-display" style="margin-top:8px; height:30px; background:#111; border-radius:4px; position:relative; overflow:hidden; display:none;">
+        <canvas id="seq-canvas" style="width:100%; height:100%;"></canvas>
+        <div id="seq-playhead" style="position:absolute; top:0; bottom:0; width:1px; background:#d4a24e; left:0; transition: none;"></div>
+      </div>
+      <div class="param" style="margin-top:8px;">
+        <label>Loop Speed <span class="val" id="val-loopspeed">1.00</span></label>
+        <input type="range" id="loopspeed" min="0.25" max="2" step="0.05" value="1">
+      </div>
+      <h3 style="margin-top:12px;">Auto-Evolve</h3>
+      <div class="presets" id="fan-modes" style="margin-bottom:8px;">
+        <button class="preset-btn" data-fan="breathe">Breathe</button>
+        <button class="preset-btn" data-fan="bloom">Bloom</button>
+        <button class="preset-btn" data-fan="spiral">Spiral</button>
+        <button class="preset-btn" data-fan="journey">Journey</button>
+        <button class="preset-btn" data-fan="off" style="color:#c44;">Off</button>
+      </div>
+      <div class="param">
+        <label>Evolve Speed <span class="val" id="val-fanspeed">1.00</span></label>
+        <input type="range" id="fanspeed" min="0.1" max="3" step="0.05" value="1">
+      </div>
+      <div id="fan-info" style="font-size:10px; color:#555; margin-top:4px;">
+        Choose a mode to auto-evolve parameters while the loop plays.
+      </div>
+    </div>
+
+    <!-- Presets -->
+    <div class="param-group">
+      <h3>Start Here</h3>
+      <div class="presets">
+        <button class="preset-btn" id="pre-pure">Pure Tone</button>
+        <button class="preset-btn" id="pre-bell">Bell</button>
+        <button class="preset-btn" id="pre-pluck">Pluck</button>
+        <button class="preset-btn" id="pre-bowl">Singing Bowl</button>
+        <button class="preset-btn" id="pre-pad">Pad</button>
+      </div>
+      <h3 style="margin-top:12px">Ripple Styles</h3>
+      <div class="presets">
+        <button class="preset-btn" id="pre-drip">Water Drip</button>
+        <button class="preset-btn" id="pre-cathedral">Cathedral</button>
+        <button class="preset-btn" id="pre-spiral">Golden Spiral</button>
+        <button class="preset-btn" id="pre-deep">Deep Space</button>
+        <button class="preset-btn" id="pre-fripp">Frippertronics</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="preset-popup">
+  <button class="close-popup" onclick="hidePopup()">×</button>
+  <h4 id="popup-title">—</h4>
+  <div class="listen-for" id="popup-listen">—</div>
+  <div class="hint" id="popup-hint">—</div>
+</div>
+
+<div id="piano-container">
+  <div id="piano"></div>
+</div>
+
+<script>
+// ========== AUDIO ENGINE ==========
+let audioCtx = null;
+let masterGain = null;
+let reverbNode = null;
+let reverbGain = null;
+let dryGain = null;
+
+function initAudio() {
+  if (audioCtx) return;
+  audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  
+  masterGain = audioCtx.createGain();
+  masterGain.gain.value = 0.5;
+  
+  // Dry path
+  dryGain = audioCtx.createGain();
+  dryGain.gain.value = 0.6;
+  dryGain.connect(masterGain);
+  
+  // Reverb path
+  reverbGain = audioCtx.createGain();
+  reverbGain.gain.value = 0.4;
+  createReverb().then(node => {
+    reverbNode = node;
+    reverbNode.connect(reverbGain);
+    reverbGain.connect(masterGain);
+  });
+  
+  masterGain.connect(audioCtx.destination);
+}
+
+async function createReverb() {
+  const conv = audioCtx.createConvolver();
+  const len = audioCtx.sampleRate * 3;
+  const buf = audioCtx.createBuffer(2, len, audioCtx.sampleRate);
+  for (let ch = 0; ch < 2; ch++) {
+    const data = buf.getChannelData(ch);
+    for (let i = 0; i < len; i++) {
+      data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (len * 0.15));
+    }
+  }
+  conv.buffer = buf;
+  return conv;
+}
+
+// ========== PARAMETERS ==========
+const PHI = (1 + Math.sqrt(5)) / 2;
+const FIB = [1, 1, 2, 3, 5, 8, 13, 21, 34, 55, 89, 144];
+
+function getVal(origId, stripId, isInt) {
+  // Prefer strip slider if it exists, fall back to original
+  const strip = stripId ? document.getElementById(stripId) : null;
+  const orig = document.getElementById(origId);
+  const el = strip || orig;
+  if (!el) return 0;
+  return isInt ? parseInt(el.value) : parseFloat(el.value);
+}
+
+function getParams() {
+  return {
+    attack: getVal('attack', 's-attack', true) / 1000,
+    adsrDecay: getVal('adsr-decay', 's-adsr-decay', true) / 1000,
+    sustain: getVal('sustain', 's-sustain'),
+    release: getVal('release', 's-release', true) / 1000,
+    decay: getVal('decay', 's-decay'),
+    echoes: getVal('echoes', 's-echoes', true),
+    drift: getVal('drift', 's-drift'),
+    gap: getVal('gap', 's-gap', true),
+    depth: getVal('depth', 's-depth', true),
+    bloom: getVal('bloom', 's-bloom'),
+    sym: getVal('sym', 's-sym'),
+    predelay: getVal('predelay', 's-predelay', true) / 1000,
+    reverb: getVal('reverb', 's-reverb'),
+    width: getVal('width', 's-width'),
+    warmth: getVal('warmth', 's-warmth'),
+    seq: currentSeqMode,
+  };
+}
+
+// ========== NOTE MODE ==========
+let currentNoteMode = 'ripple';
+let harmonicsActive = false; // master toggle — harmonics OFF by default
+let harmonicToggles = [true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true];
+
+function toggleHarmonics() {
+  harmonicsActive = !harmonicsActive;
+  const btn = document.getElementById('harmonics-toggle');
+  btn.textContent = harmonicsActive ? 'ON' : 'OFF';
+  btn.classList.toggle('active', harmonicsActive);
+  btn.style.opacity = harmonicsActive ? '1' : '0.5';
+}
+
+function setNoteMode(mode) {
+  currentNoteMode = mode;
+  document.querySelectorAll('#note-mode-presets .preset-btn').forEach(b => b.classList.remove('active'));
+  document.querySelector(`[data-notemode="${mode}"]`).classList.add('active');
+  document.getElementById('harmonic-bloom-controls').style.display = mode === 'harmonic-bloom' ? 'block' : 'none';
+  document.getElementById('note-mode-desc').textContent = mode === 'ripple' 
+    ? 'Same note echoes in Fibonacci timing' 
+    : 'Overtone cascade blooms in Fibonacci timing';
+}
+
+function buildHarmonicToggles() {
+  const container = document.getElementById('harmonic-toggles');
+  container.innerHTML = '';
+  for (let i = 0; i < 16; i++) {
+    const btn = document.createElement('button');
+    btn.className = 'preset-btn' + (harmonicToggles[i] ? ' active' : '');
+    btn.style.cssText = 'min-width:28px; padding:3px 5px; font-size:0.7em;';
+    btn.textContent = `H${i + 1}`;
+    btn.title = `Harmonic ${i + 1} (×${i + 1} frequency)`;
+    btn.onclick = () => {
+      harmonicToggles[i] = !harmonicToggles[i];
+      btn.classList.toggle('active');
+    };
+    container.appendChild(btn);
+  }
+}
+
+function setHarmonicPreset(preset) {
+  const primes = [2, 3, 5, 7, 11, 13];
+  for (let i = 0; i < 16; i++) {
+    const h = i + 1;
+    switch (preset) {
+      case 'all': harmonicToggles[i] = true; break;
+      case 'odd': harmonicToggles[i] = h % 2 === 1; break;
+      case 'even': harmonicToggles[i] = h % 2 === 0; break;
+      case 'prime': harmonicToggles[i] = primes.includes(h); break;
+      case 'octaves': harmonicToggles[i] = (h & (h - 1)) === 0; break; // powers of 2
+      case 'fifths': harmonicToggles[i] = [1, 3, 6, 9, 12].includes(h); break; // root + fifths-ish
+    }
+  }
+  buildHarmonicToggles();
+}
+
+// Build initial toggles
+buildHarmonicToggles();
+
+// Bloom count slider
+document.getElementById('bloom-count')?.addEventListener('input', (e) => {
+  document.getElementById('val-bloom-count').textContent = e.target.value;
+});
+
+let currentSeqMode = 'fibonacci';
+
+// ========== BLOOM QUANTIZE ==========
+let quantizeEnabled = false;
+let bloomGrid = [];       // absolute timestamps (ms) of the active bloom grid
+let lastRippleTime = 0;   // when the last ripple started
+
+function toggleQuantize() {
+  quantizeEnabled = !quantizeEnabled;
+  const btn = document.getElementById('btn-quantize');
+  const val = document.getElementById('val-quantize');
+  if (quantizeEnabled) {
+    btn.textContent = 'ON — snapping to bloom';
+    btn.classList.add('active');
+    val.textContent = 'ON';
+  } else {
+    btn.textContent = 'OFF — free play';
+    btn.classList.remove('active');
+    val.textContent = 'OFF';
+  }
+}
+
+// Build a grid of bloom timestamps from the last ripple
+function rebuildBloomGrid(startTime, params) {
+  bloomGrid = [startTime];
+  const gaps = getGapSequence(params.gap / 1000, Math.max(params.echoes, 21), params.seq);
+  let t = startTime;
+  // Build grid extending forward - each gap point and subdivisions
+  for (let cycle = 0; cycle < 4; cycle++) {
+    for (let i = 0; i < gaps.length; i++) {
+      t += gaps[i] * 1000; // convert to ms
+      bloomGrid.push(t);
+    }
+  }
+}
+
+// Find nearest grid point and return delay in seconds
+function quantizeToBloom(nowMs) {
+  if (bloomGrid.length === 0) return 0;
+  
+  const window = parseInt(document.getElementById('qwindow').value);
+  let nearest = bloomGrid[0];
+  let minDist = Math.abs(nowMs - bloomGrid[0]);
+  
+  for (let i = 1; i < bloomGrid.length; i++) {
+    const dist = Math.abs(nowMs - bloomGrid[i]);
+    if (dist < minDist) {
+      minDist = dist;
+      nearest = bloomGrid[i];
+    }
+    // Also check slightly ahead — snap to next point if close
+    if (bloomGrid[i] > nowMs && bloomGrid[i] - nowMs < window) {
+      nearest = bloomGrid[i];
+      minDist = bloomGrid[i] - nowMs;
+      break;
+    }
+  }
+  
+  // Only quantize if within the window
+  if (minDist > window) return 0;
+  
+  // Return positive delay (how long to wait to hit the grid point)
+  const delay = (nearest - nowMs) / 1000;
+  return Math.max(0, delay);
+}
+
+function getGapSequence(baseGap, count, mode) {
+  const gaps = [];
+  for (let i = 0; i < count; i++) {
+    switch (mode) {
+      case 'fibonacci': gaps.push(baseGap * FIB[i]); break;
+      case 'golden': gaps.push(baseGap * Math.pow(PHI, i)); break;
+      case 'linear': gaps.push(baseGap); break;
+      case 'log': gaps.push(baseGap * Math.log2(i + 2)); break;
+    }
+  }
+  return gaps;
+}
+
+// ========== TONE SYNTHESIS ==========
+function playTone(freq, time, amplitude, echoIndex, params) {
+  if (!audioCtx) return;
+  if (!window._toneCount) window._toneCount = 0;
+  window._toneCount++;
+  const tc = document.getElementById('tone-counter');
+  if (tc) tc.textContent = `T:${window._toneCount} H:${harmonicsActive?'ON':'OFF'} D:${params.depth}`;
+  
+  const now = time || audioCtx.currentTime;
+  
+  // ADSR timing — later echoes get slightly longer release
+  const A = params.attack + echoIndex * 0.005;
+  const D = params.adsrDecay;
+  const S = params.sustain;
+  const R = params.release + echoIndex * 0.15;
+  const dur = A + D + R + 0.5;
+  
+  // Stereo panning — echoes alternate wider
+  const pan = audioCtx.createStereoPanner();
+  const panDir = echoIndex % 2 === 0 ? 1 : -1;
+  pan.pan.value = panDir * params.width * Math.min(echoIndex * 0.15, 0.9);
+  
+  // Main oscillator
+  const osc = audioCtx.createOscillator();
+  osc.type = 'sine';
+  
+  // Spectral drift — pitch drops slightly on later echoes
+  const driftCents = echoIndex * params.drift * -5;
+  osc.frequency.value = freq * Math.pow(2, driftCents / 1200);
+  
+  // ADSR envelope
+  const env = audioCtx.createGain();
+  const sustainLevel = Math.max(amplitude * S, 0.001);
+  env.gain.setValueAtTime(0, now);
+  env.gain.linearRampToValueAtTime(amplitude, now + A);                    // Attack
+  env.gain.exponentialRampToValueAtTime(sustainLevel, now + A + D);        // Decay → Sustain
+  env.gain.setValueAtTime(sustainLevel, now + A + D + 0.1);               // Hold sustain briefly
+  env.gain.exponentialRampToValueAtTime(0.001, now + A + D + 0.1 + R);    // Release
+  
+  // Warmth — detuned pair
+  let warmOsc = null;
+  let warmEnv = null;
+  if (params.warmth > 0) {
+    warmOsc = audioCtx.createOscillator();
+    warmOsc.type = 'sine';
+    warmOsc.frequency.value = freq * (1 + 0.003 * params.warmth);
+    warmEnv = audioCtx.createGain();
+    warmEnv.gain.setValueAtTime(0, now);
+    warmEnv.gain.linearRampToValueAtTime(amplitude * params.warmth * 0.4, now + A);
+    warmEnv.gain.exponentialRampToValueAtTime(0.001, now + dur);
+    warmOsc.connect(warmEnv);
+    warmEnv.connect(pan);
+    warmOsc.start(now);
+    warmOsc.stop(now + dur);
+  }
+  
+  osc.connect(env);
+  env.connect(pan);
+  pan.connect(dryGain);
+  if (reverbNode) pan.connect(reverbNode);
+  
+  osc.start(now);
+  osc.stop(now + dur);
+  
+  // Harmonic overtones — bloom on later echoes (only when toggle is ON)
+  if (params.depth > 0 && harmonicsActive) {
+    for (let h = 2; h <= params.depth + 1; h++) {
+      const hFreq = freq * h;
+      if (hFreq > 8000) break;
+      
+      const hOsc = audioCtx.createOscillator();
+      hOsc.type = 'sine';
+      hOsc.frequency.value = hFreq * Math.pow(2, driftCents / 1200);
+      
+      const hEnv = audioCtx.createGain();
+      // Overtones bloom MORE on later echoes
+      const bloomFactor = params.bloom * (1 + echoIndex * 0.15);
+      const hAmp = amplitude * bloomFactor / (h * 0.8);
+      
+      // Higher harmonics decay faster — spectral drift
+      const hDecay = dur * (1 - params.drift * h * 0.05);
+      
+      hEnv.gain.setValueAtTime(0, now);
+      // Predelay — pure tone first, THEN overtones bloom in
+      const basePredelay = params.predelay || 0.15;
+      const bloomDelay = basePredelay + 0.02 * h * (1 + echoIndex * 0.1);
+      const bloomRise = bloomDelay + 0.05 * h; // higher harmonics take longer to swell
+      hEnv.gain.setValueAtTime(0, now);
+      hEnv.gain.linearRampToValueAtTime(0, now + bloomDelay); // silence during predelay
+      hEnv.gain.linearRampToValueAtTime(hAmp, now + bloomRise); // swell in
+      hEnv.gain.exponentialRampToValueAtTime(0.001, now + Math.max(hDecay, bloomRise + 0.1));
+      
+      hOsc.connect(hEnv);
+      hEnv.connect(pan);
+      
+      hOsc.start(now);
+      hOsc.stop(now + dur + 0.1);
+    }
+  }
+  
+  // Sympathetic resonance — sub-octave (only when harmonics toggle is ON)
+  if (params.sym > 0 && echoIndex > 0 && harmonicsActive) {
+    const subOsc = audioCtx.createOscillator();
+    subOsc.type = 'sine';
+    subOsc.frequency.value = freq / 2;
+    const subEnv = audioCtx.createGain();
+    const subAmp = amplitude * params.sym * 0.3;
+    subEnv.gain.setValueAtTime(0, now);
+    subEnv.gain.linearRampToValueAtTime(subAmp, now + 0.1);
+    subEnv.gain.exponentialRampToValueAtTime(0.001, now + dur * 0.7);
+    subOsc.connect(subEnv);
+    subEnv.connect(pan);
+    subOsc.start(now);
+    subOsc.stop(now + dur);
+  }
+}
+
+// ========== RIPPLE ENGINE ==========
+const activeRipples = [];
+
+function triggerRipple(freq, noteName) {
+  initAudio();
+  
+  const params = getParams();
+  let now = audioCtx.currentTime;
+  
+  // Bloom quantize — snap to grid if enabled
+  let quantizeDelay = 0;
+  if (quantizeEnabled && bloomGrid.length > 0) {
+    quantizeDelay = quantizeToBloom(performance.now());
+    now += quantizeDelay;
+  }
+  
+  if (currentNoteMode === 'harmonic-bloom') {
+    // === HARMONIC BLOOM MODE ===
+    // Cascade through overtone series in Fibonacci timing
+    const bloomCount = parseInt(document.getElementById('bloom-count')?.value || 8);
+    
+    // Build list of active harmonics
+    const activeHarmonics = [];
+    for (let h = 0; h < bloomCount && h < 16; h++) {
+      if (harmonicToggles[h]) {
+        activeHarmonics.push(h + 1); // harmonic number (1 = fundamental)
+      }
+    }
+    
+    if (activeHarmonics.length === 0) activeHarmonics.push(1);
+    
+    const gaps = getGapSequence(params.gap / 1000, activeHarmonics.length, params.seq);
+    
+    // Schedule each harmonic on the Fibonacci grid
+    let time = now;
+    for (let i = 0; i < activeHarmonics.length; i++) {
+      const harmonicNum = activeHarmonics[i];
+      const harmonicFreq = freq * harmonicNum;
+      const amp = 0.3 * Math.pow(params.decay, i);
+      
+      // Play with slightly modified params for each harmonic
+      const hParams = { ...params };
+      // Later harmonics get more bloom/shimmer
+      hParams.bloom = Math.min(1, params.bloom + i * 0.05);
+      
+      playTone(harmonicFreq, time, amp, i, hParams);
+      
+      if (i < activeHarmonics.length - 1) {
+        time += gaps[i];
+      }
+    }
+    
+    // Update bloom grid
+    lastRippleTime = performance.now() + quantizeDelay * 1000;
+    rebuildBloomGrid(lastRippleTime, params);
+    
+    // Visual ripple
+    const vizStart = performance.now() + quantizeDelay * 1000;
+    activeRipples.push({
+      x: Math.random() * 0.6 + 0.2,
+      y: Math.random() * 0.5 + 0.25,
+      freq,
+      noteName: noteName + ' ⟿ H' + activeHarmonics.length,
+      startTime: vizStart,
+      params: { ...params },
+      gaps,
+      echoes: activeHarmonics.length - 1,
+      harmonicBloom: true,
+      activeHarmonics,
+    });
+    
+  } else {
+    // === RIPPLE MODE (original) ===
+    const gaps = getGapSequence(params.gap / 1000, params.echoes, params.seq);
+    
+    // Schedule all echoes
+    let time = now;
+    for (let i = 0; i <= params.echoes; i++) {
+      const amp = 0.3 * Math.pow(params.decay, i);
+      playTone(freq, time, amp, i, params);
+      
+      if (i < params.echoes) {
+        time += gaps[i];
+      }
+    }
+    
+    // Update bloom grid from this ripple
+    lastRippleTime = performance.now() + quantizeDelay * 1000;
+    rebuildBloomGrid(lastRippleTime, params);
+    
+    // Create visual ripple
+    const vizStart = performance.now() + quantizeDelay * 1000;
+    activeRipples.push({
+      x: Math.random() * 0.6 + 0.2,
+      y: Math.random() * 0.5 + 0.25,
+      freq,
+      noteName,
+      startTime: vizStart,
+      params: { ...params },
+      gaps,
+      echoes: params.echoes,
+    });
+  }
+  
+  // Update info
+  document.getElementById('info-note').className = 'active';
+  document.getElementById('info-note').textContent = `♪ ${noteName} (${freq.toFixed(1)}Hz)`;
+  document.getElementById('info-echo').className = 'active';
+  if (currentNoteMode === 'harmonic-bloom') {
+    const bloomCount = parseInt(document.getElementById('bloom-count')?.value || 8);
+    const active = harmonicToggles.slice(0, bloomCount).filter(Boolean).length;
+    document.getElementById('info-echo').textContent = `🌸 Bloom: ${active} harmonics in ${currentSeqMode} time`;
+    document.getElementById('info-harmonics').className = 'active';
+    document.getElementById('info-harmonics').textContent = `Series: ${harmonicToggles.slice(0, bloomCount).map((on, i) => on ? `H${i+1}` : '·').join(' ')}`;
+  } else {
+    document.getElementById('info-echo').textContent = `Echoes: ${params.echoes} @ φ=${params.decay.toFixed(3)}`;
+    document.getElementById('info-harmonics').className = 'active';
+    document.getElementById('info-harmonics').textContent = `Overtones: H1-H${params.depth + 1} | Bloom: ${params.bloom.toFixed(2)}`;
+  }
+}
+
+// ========== VISUALIZATION ==========
+const canvas = document.getElementById('vizCanvas');
+const ctx = canvas.getContext('2d');
+
+function resizeCanvas() {
+  canvas.width = canvas.parentElement.clientWidth * window.devicePixelRatio;
+  canvas.height = canvas.parentElement.clientHeight * window.devicePixelRatio;
+  ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+}
+resizeCanvas();
+window.addEventListener('resize', resizeCanvas);
+
+function drawFrame() {
+  const w = canvas.width / window.devicePixelRatio;
+  const h = canvas.height / window.devicePixelRatio;
+  
+  // Fade trail
+  ctx.fillStyle = 'rgba(10, 10, 15, 0.08)';
+  ctx.fillRect(0, 0, w, h);
+  
+  const now = performance.now();
+  
+  for (let r = activeRipples.length - 1; r >= 0; r--) {
+    const ripple = activeRipples[r];
+    const elapsed = (now - ripple.startTime) / 1000;
+    
+    // Calculate total duration
+    let totalDur = 0;
+    for (let i = 0; i < ripple.gaps.length; i++) totalDur += ripple.gaps[i];
+    totalDur += 3; // tail
+    
+    if (elapsed > totalDur + 2) {
+      activeRipples.splice(r, 1);
+      continue;
+    }
+    
+    const cx = ripple.x * w;
+    const cy = ripple.y * h;
+    
+    // Draw echo rings
+    let echoTime = 0;
+    for (let i = 0; i <= ripple.echoes; i++) {
+      const echoElapsed = elapsed - echoTime;
+      
+      if (echoElapsed > 0) {
+        const amp = Math.pow(ripple.params.decay, i);
+        const radius = echoElapsed * 80 * (1 + i * 0.1);
+        const alpha = amp * Math.max(0, 1 - echoElapsed / 4);
+        
+        if (alpha > 0.01) {
+          // Golden spiral angle for each echo
+          const spiralAngle = i * PHI * Math.PI * 2;
+          const spiralRadius = i * 15;
+          const ex = cx + Math.cos(spiralAngle) * spiralRadius;
+          const ey = cy + Math.sin(spiralAngle) * spiralRadius;
+          
+          // Main ring
+          ctx.beginPath();
+          ctx.arc(ex, ey, radius, 0, Math.PI * 2);
+          ctx.strokeStyle = `rgba(212, 162, 78, ${alpha * 0.6})`;
+          ctx.lineWidth = 2 * amp;
+          ctx.stroke();
+          
+          // Harmonic rings — smaller, inner
+          if (ripple.params.depth > 0) {
+            for (let h = 2; h <= ripple.params.depth + 1 && h <= 6; h++) {
+              const hRadius = radius / h;
+              const hAlpha = alpha * ripple.params.bloom * 0.4 / h;
+              if (hAlpha > 0.01) {
+                ctx.beginPath();
+                ctx.arc(ex, ey, hRadius, 0, Math.PI * 2);
+                // Color shifts with harmonic number
+                const hue = 35 + h * 15;
+                ctx.strokeStyle = `hsla(${hue}, 70%, 55%, ${hAlpha})`;
+                ctx.lineWidth = 1;
+                ctx.stroke();
+              }
+            }
+          }
+          
+          // Echo pulse dot
+          if (echoElapsed < 0.3) {
+            const dotAlpha = amp * (1 - echoElapsed / 0.3);
+            ctx.beginPath();
+            ctx.arc(ex, ey, 5 * amp, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(232, 192, 112, ${dotAlpha})`;
+            ctx.fill();
+          }
+          
+          // Echo number
+          if (echoElapsed < 2 && i > 0) {
+            ctx.font = '10px Courier New';
+            ctx.fillStyle = `rgba(150, 120, 60, ${alpha * 0.5})`;
+            ctx.fillText(`φ^${i}=${amp.toFixed(3)}`, ex + 8, ey - 8);
+          }
+        }
+      }
+      
+      if (i < ripple.gaps.length) echoTime += ripple.gaps[i];
+    }
+    
+    // Draw Fibonacci timing markers along bottom — fade out after cascade completes
+    echoTime = 0;
+    const timelineY = h - 20;
+    const timelineScale = w / (totalDur + 1);
+    const fadeStart = totalDur + 1; // start fading after last echo
+    const fadeDur = 3; // fade over 3 seconds
+    const markerFade = elapsed > fadeStart ? Math.max(0, 1 - (elapsed - fadeStart) / fadeDur) : 1;
+    
+    if (markerFade > 0) {
+      for (let i = 0; i <= ripple.echoes; i++) {
+        const tx = echoTime * timelineScale + 10;
+        const tAlpha = (elapsed > echoTime ? 0.8 : 0.2) * markerFade;
+        const amp = Math.pow(ripple.params.decay, i);
+        
+        // Timeline dot
+        ctx.beginPath();
+        ctx.arc(tx, timelineY, 3 * amp + 1, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(212, 162, 78, ${tAlpha * amp})`;
+        ctx.fill();
+        
+        // Gap label
+        if (i < ripple.gaps.length) {
+          const nextTx = (echoTime + ripple.gaps[i]) * timelineScale + 10;
+          ctx.font = '8px Courier New';
+          ctx.fillStyle = `rgba(100, 80, 40, ${tAlpha * 0.6})`;
+          const seqLabels = {
+            fibonacci: `F${FIB[i]}`,
+            golden: `φ${(i+1)}`,
+            linear: `L${i+1}`,
+            log: `lg${i+1}`,
+          };
+          const gapLabel = seqLabels[ripple.params.seq] || `×${ripple.gaps[i].toFixed(2)}s`;
+          ctx.fillText(gapLabel, (tx + nextTx) / 2 - 8, timelineY - 6);
+        }
+        
+        if (i < ripple.gaps.length) echoTime += ripple.gaps[i];
+      }
+    }
+    
+    // Playhead
+    const playheadX = elapsed * timelineScale + 10;
+    if (playheadX < w) {
+      ctx.beginPath();
+      ctx.moveTo(playheadX, timelineY - 8);
+      ctx.lineTo(playheadX, timelineY + 8);
+      ctx.strokeStyle = 'rgba(232, 192, 112, 0.8)';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    }
+  }
+  
+  // Golden spiral background (subtle)
+  if (activeRipples.length === 0) {
+    ctx.save();
+    ctx.translate(w / 2, h / 2);
+    ctx.beginPath();
+    for (let t = 0; t < 20; t += 0.02) {
+      const r = 5 * Math.pow(PHI, t / (Math.PI * 2));
+      if (r > Math.max(w, h)) break;
+      const x = r * Math.cos(t);
+      const y = r * Math.sin(t);
+      if (t === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    }
+    ctx.strokeStyle = 'rgba(212, 162, 78, 0.04)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    ctx.restore();
+    
+    ctx.font = '14px Courier New';
+    ctx.fillStyle = 'rgba(100, 80, 40, 0.3)';
+    ctx.textAlign = 'center';
+    ctx.fillText('play a note to create a ripple', w / 2, h / 2);
+    ctx.textAlign = 'left';
+  }
+  
+  requestAnimationFrame(drawFrame);
+}
+drawFrame();
+
+// ========== PIANO ==========
+const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+const WHITE_NOTES = [0, 2, 4, 5, 7, 9, 11]; // C D E F G A B
+const BLACK_NOTES = [1, 3, 6, 8, 10]; // C# D# F# G# A#
+const BLACK_POSITIONS = [0.6, 1.6, 3.6, 4.6, 5.6]; // relative to white keys
+
+const START_OCTAVE = 3;
+const NUM_OCTAVES = 3;
+
+let concertPitch = 440;
+let tuningMode = 'et440'; // 'et440', 'et432', 'just'
+
+// Just Intonation ratios relative to the root (C)
+// These are the pure harmonic ratios for a 12-note scale
+const JI_RATIOS = {
+  0: 1,        // Unison (C)
+  1: 16/15,    // Minor 2nd (Db)
+  2: 9/8,      // Major 2nd (D)
+  3: 6/5,      // Minor 3rd (Eb)
+  4: 5/4,      // Major 3rd (E)
+  5: 4/3,      // Perfect 4th (F)
+  6: 45/32,    // Tritone (F#)
+  7: 3/2,      // Perfect 5th (G)
+  8: 8/5,      // Minor 6th (Ab)
+  9: 5/3,      // Major 6th (A)
+  10: 9/5,     // Minor 7th (Bb)
+  11: 15/8,    // Major 7th (B)
+};
+
+function midiToFreq(midi) {
+  if (tuningMode === 'just') {
+    // JI: calculate from root note (C) using pure ratios
+    const rootMidi = Math.floor(midi / 12) * 12; // nearest C
+    const semitone = midi - rootMidi;
+    const octave = Math.floor(midi / 12) - 5; // C4 = MIDI 60 = octave 0
+    const rootFreq = concertPitch * Math.pow(2, (rootMidi - 69) / 12); // ET freq of the root C
+    // Actually, let's anchor to the selected root
+    const baseC4 = concertPitch / JI_RATIOS[9]; // A4=440 → C4 via major 6th ratio
+    const baseC = baseC4 * Math.pow(2, octave);
+    return baseC * JI_RATIOS[semitone];
+  }
+  return concertPitch * Math.pow(2, (midi - 69) / 12);
+}
+
+function setTuning(mode) {
+  tuningMode = mode;
+  document.querySelectorAll('#tuning-presets .preset-btn').forEach(b => b.classList.remove('active'));
+  document.querySelector(`[data-tuning="${mode}"]`)?.classList.add('active');
+  
+  switch (mode) {
+    case 'et440': concertPitch = 440; break;
+    case 'et432': concertPitch = 432; break;
+    case 'just': concertPitch = 440; break; // JI still references A=440 as anchor
+  }
+  
+  const labels = { et440: '440Hz ET', et432: '432Hz ET', just: 'Just Intonation' };
+  document.getElementById('val-tuning').textContent = labels[mode];
+}
+
+function buildPiano() {
+  const piano = document.getElementById('piano');
+  const keys = [];
+  
+  for (let oct = 0; oct < NUM_OCTAVES; oct++) {
+    const octave = START_OCTAVE + oct;
+    
+    // White keys
+    WHITE_NOTES.forEach((note, wi) => {
+      const key = document.createElement('div');
+      key.className = 'white-key';
+      const midi = (octave + 1) * 12 + note;
+      const name = NOTE_NAMES[note] + octave;
+      key.dataset.midi = midi;
+      key.dataset.name = name;
+      
+      const label = document.createElement('div');
+      label.className = 'key-label';
+      label.textContent = NOTE_NAMES[note] + (note === 0 ? octave : '');
+      key.appendChild(label);
+      
+      key.addEventListener('mousedown', () => { noteOn(midi, name, key); });
+      key.addEventListener('mouseup', () => { noteOff(midi); });
+      key.addEventListener('mouseleave', () => { noteOff(midi); });
+      
+      piano.appendChild(key);
+      keys.push(key);
+    });
+  }
+  
+  // Black keys
+  const whiteWidth = 36;
+  for (let oct = 0; oct < NUM_OCTAVES; oct++) {
+    const octave = START_OCTAVE + oct;
+    BLACK_NOTES.forEach((note, bi) => {
+      const key = document.createElement('div');
+      key.className = 'black-key';
+      const midi = (octave + 1) * 12 + note;
+      const name = NOTE_NAMES[note] + octave;
+      key.dataset.midi = midi;
+      key.dataset.name = name;
+      
+      key.style.left = ((oct * 7 + BLACK_POSITIONS[bi]) * whiteWidth + whiteWidth / 2 - 11) + 'px';
+      
+      key.addEventListener('mousedown', (e) => { e.stopPropagation(); noteOn(midi, name, key); });
+      key.addEventListener('mouseup', () => { noteOff(midi); });
+      key.addEventListener('mouseleave', () => { noteOff(midi); });
+      
+      piano.appendChild(key);
+    });
+  }
+}
+
+// ========== HOLD-TO-PULSE ENGINE ==========
+const heldNotes = {}; // midi -> { interval, count, keyEl, name }
+const PULSE_RAMP_MS = 80; // initial pulse speed (ms), slows with depth
+
+function noteOn(midi, name, keyEl) {
+  initAudio();
+  if (keyEl) keyEl.classList.add('pressed');
+  const freq = midiToFreq(midi);
+  
+  // Debug: show actual params being used
+  const _p = getParams();
+  const tc = document.getElementById('tone-counter');
+  if (tc) tc.textContent = `E:${_p.echoes} D:${_p.depth}`;
+  
+  // Immediate first trigger
+  triggerRipple(freq, name);
+  
+  // Hold tracking (pulse disabled for now — isolating intentional sounds)
+  if (!heldNotes[midi]) {
+    heldNotes[midi] = { interval: null, count: 0, keyEl, name, freq };
+  }
+}
+
+function noteOff(midi) {
+  const held = heldNotes[midi];
+  if (!held) return;
+  
+  clearInterval(held.interval);
+  
+  // Clean up (no release tone — isolating intentional sounds only)
+  if (held.keyEl) {
+    held.keyEl.classList.remove('pressed');
+    held.keyEl.style.boxShadow = '';
+  }
+  delete heldNotes[midi];
+}
+
+buildPiano();
+
+// ========== KEYBOARD INPUT ==========
+const KEY_MAP = {
+  'a': 48, 'w': 49, 's': 50, 'e': 51, 'd': 52, 'f': 53, 't': 54,
+  'g': 55, 'y': 56, 'h': 57, 'u': 58, 'j': 59, 'k': 60, 'o': 61,
+  'l': 62, 'p': 63, ';': 64, "'": 65,
+};
+
+const pressedKeys = new Set();
+document.addEventListener('keydown', (e) => {
+  if (e.repeat || pressedKeys.has(e.key)) return;
+  const midi = KEY_MAP[e.key.toLowerCase()];
+  if (midi !== undefined) {
+    pressedKeys.add(e.key);
+    const octOffset = (parseInt(document.getElementById('echoes').value) > 6 ? 0 : 0);
+    const actualMidi = midi + 12; // shift to octave 4
+    const note = NOTE_NAMES[actualMidi % 12] + Math.floor(actualMidi / 12 - 1);
+    noteOn(actualMidi, note, null);
+  }
+});
+document.addEventListener('keyup', (e) => { 
+  pressedKeys.delete(e.key);
+  const midi = KEY_MAP[e.key.toLowerCase()];
+  if (midi !== undefined) {
+    const actualMidi = midi + 12;
+    noteOff(actualMidi);
+  }
+});
+
+// ========== MIDI INPUT ==========
+if (navigator.requestMIDIAccess) {
+  navigator.requestMIDIAccess().then(midi => {
+    const status = document.getElementById('midi-status');
+    
+    function connectInputs() {
+      let found = false;
+      midi.inputs.forEach(input => {
+        found = true;
+        console.log('MIDI input port:', input.name, input.id);
+        // Skip Osmose Port 2 (Haken/EaganMatrix internal data)
+        const isPort2 = input.name.toLowerCase().includes('port 2');
+        input.onmidimessage = (msg) => {
+          if (isPort2) return; // ignore all Port 2 data
+          const [cmd, data1, data2] = msg.data;
+          const msgType = cmd & 0xF0;
+          const ch = cmd & 0x0F;
+          // Skip channels 15-16 (Haken Editor reserved)
+          if (ch >= 14) return;
+          const inputName = input.name;
+          // On-screen MIDI debug
+          const dbg = document.getElementById('midi-debug');
+          const types = {0x80:'NoteOff',0x90:'NoteOn',0xA0:'PolyAT',0xB0:'CC',0xC0:'PrgChg',0xD0:'ChanAT',0xE0:'Bend'};
+          const label = types[msgType] || `0x${msgType.toString(16)}`;
+          if (!window._midiLog) window._midiLog = [];
+          window._midiLog.push(`${label} ch${cmd&0xF} d1=${data1} d2=${data2}`);
+          if (window._midiLog.length > 6) window._midiLog.shift();
+          if (dbg) dbg.innerHTML = window._midiLog.join('<br>');
+          // MPE-safe note handling: treat note number as the only identity
+          // Ignore noteOff from MPE channel cycling — only clear on silence
+          if (msgType === 0x80 || (msgType === 0x90 && data2 === 0)) {
+            // Don't immediately noteOff — let the sound ring naturally
+            // Just track that this channel released
+            if (!window._mpeChannels) window._mpeChannels = {};
+            delete window._mpeChannels[data1 + '_' + ch];
+            
+            // Only actually noteOff if NO channels are holding this note
+            const anyHeld = Object.keys(window._mpeChannels).some(k => k.startsWith(data1 + '_'));
+            if (!anyHeld) {
+              noteOff(data1);
+            }
+          }
+          // Note On — strict global dedup by note number
+          if (msgType === 0x90 && data2 > 0) {
+            if (!window._noteOnTimes) window._noteOnTimes = {};
+            if (!window._mpeChannels) window._mpeChannels = {};
+            const now = performance.now();
+            const lastOn = window._noteOnTimes[data1] || 0;
+            const timeSince = now - lastOn;
+            
+            if (timeSince < 1000) {
+              // Block — same note within 1 second
+              document.getElementById('s-midi-status').textContent = `BLOCKED ${timeSince.toFixed(0)}ms n=${data1} ch${ch}`;
+              document.getElementById('s-midi-status').style.color = '#c44';
+            } else {
+              window._noteOnTimes[data1] = now;
+              window._mpeChannels[data1 + '_' + ch] = true;
+              const name = NOTE_NAMES[data1 % 12] + (Math.floor(data1 / 12) - 1);
+              if (!window._midiCount) window._midiCount = 0;
+              window._midiCount++;
+              document.getElementById('s-midi-status').textContent = `#${window._midiCount}: ${name} ch${ch} [${inputName}]`;
+              document.getElementById('s-midi-status').style.color = '#4a4';
+              noteOn(data1, name, null);
+            }
+          }
+          // CC — route to Ripple Engine parameters
+          if ((cmd & 0xF0) === 0xB0) {
+            handleMidiCC(data1, data2);
+          }
+        };
+      });
+      status.textContent = found ? 'MIDI: connected ✓' : 'MIDI: no device';
+      status.className = found ? 'connected' : '';
+    }
+    
+    connectInputs();
+    midi.onstatechange = connectInputs;
+  }).catch(() => {
+    document.getElementById('midi-status').textContent = 'MIDI: unavailable';
+  });
+}
+
+// ========== MIDI CC MAPPING ==========
+// Default Cobalt 8 CC map — adjust to taste or use MIDI Learn
+const CC_MAP = {
+  // === AEG (Amp Envelope) — Cobalt 8 CCs 26-29 ===
+  26: { param: 'attack',    min: 1,   max: 500 },   // AEG Attack
+  27: { param: 'adsrDecay', min: 10,  max: 2000 },  // AEG Decay
+  28: { param: 'sustain',   min: 0,   max: 1 },     // AEG Sustain
+  29: { param: 'release',   min: 100, max: 8000 },  // AEG Release
+  
+  // === FILTER — Cobalt 8 CCs 33-35 ===
+  34: { param: 'warmth',    min: 0,   max: 1 },     // Cutoff → Warmth
+  35: { param: 'bloom',     min: 0,   max: 1 },     // Resonance → Bloom
+  
+  // === LFO — Cobalt 8 CCs 36-37, 47-48 ===
+  36: { param: 'gap',       min: 30,  max: 3000 },  // LFO1 Rate → Base Gap
+  37: { param: 'depth',     min: 0,   max: 12 },    // LFO1 Depth → Overtone Depth
+  47: { param: 'drift',     min: 0,   max: 1 },     // LFO2 Rate → Spectral Drift
+  48: { param: 'width',     min: 0,   max: 1 },     // LFO2 Depth → Stereo Width
+  
+  // === FX — Cobalt 8 CC 73 ===
+  73: { param: 'reverb',    min: 0,   max: 1 },     // FX Amount → Reverb
+  
+  // === MOD WHEEL ===
+  1:  { param: 'sym',       min: 0,   max: 1 },     // Mod Wheel → Sub Harmonic
+};
+
+// MIDI Learn state
+let midiLearnActive = false;
+let midiLearnTarget = null;
+let activeSlider = null; // track which slider is being touched
+
+// Track mouse interaction with sliders
+document.querySelectorAll('.param input[type="range"]').forEach(slider => {
+  slider.addEventListener('mousedown', () => { activeSlider = slider.id; });
+  slider.addEventListener('touchstart', () => { activeSlider = slider.id; });
+});
+document.addEventListener('mouseup', () => { activeSlider = null; });
+document.addEventListener('touchend', () => { activeSlider = null; });
+
+function handleMidiCC(cc, value) {
+  // Auto-learn: if holding a slider and Learn mode is on, assign this CC
+  if (midiLearnArmed && activeSlider) {
+    const slider = document.getElementById(activeSlider);
+    if (slider) {
+      const min = parseFloat(slider.min);
+      const max = parseFloat(slider.max);
+      CC_MAP[cc] = { param: activeSlider, min, max };
+      document.getElementById('midi-learn-status').textContent = `✓ CC${cc} → ${activeSlider}`;
+      document.getElementById('midi-learn-status').style.color = '#4a4';
+      activeSlider = null;
+      saveCCMap();
+    }
+    return;
+  }
+
+  // Old learn mode (label click)
+  if (midiLearnActive && midiLearnTarget) {
+    const slider = document.getElementById(midiLearnTarget);
+    if (slider) {
+      const min = parseFloat(slider.min);
+      const max = parseFloat(slider.max);
+      CC_MAP[cc] = { param: midiLearnTarget, min, max };
+      midiLearnActive = false;
+      document.getElementById('midi-learn-status').textContent = `CC${cc} → ${midiLearnTarget} ✓`;
+      document.getElementById('midi-learn-status').style.color = '#4a4';
+      // Clear highlight
+      slider.style.outline = '';
+      slider.style.outlineOffset = '';
+      const lbl = slider.closest('.param')?.querySelector('label');
+      if (lbl) lbl.style.color = '';
+      midiLearnTarget = null;
+      saveCCMap();
+    }
+    return;
+  }
+  
+  // Normal CC routing
+  const mapping = CC_MAP[cc];
+  if (!mapping) return;
+  
+  const slider = document.getElementById(mapping.param);
+  if (!slider) return;
+  
+  // Map 0-127 to param range
+  const normalized = value / 127;
+  const mapped = mapping.min + normalized * (mapping.max - mapping.min);
+  
+  // Update slider and display
+  slider.value = mapped;
+  slider.dispatchEvent(new Event('input'));
+  
+  // Visual feedback on slider
+  const display = document.getElementById('val-' + mapping.param);
+  if (display) {
+    display.style.color = '#D4A24E';
+    setTimeout(() => { display.style.color = ''; }, 300);
+  }
+  
+  // Flash the MIDI map row if panel is open
+  const row = document.getElementById('midi-row-' + cc);
+  if (row) {
+    row.style.background = '#d4a24e22';
+    setTimeout(() => { row.style.background = ''; }, 200);
+  }
+}
+
+// Save/load CC map to localStorage
+function saveCCMap() {
+  localStorage.setItem('ripple-cc-map', JSON.stringify(CC_MAP));
+}
+
+function loadCCMap() {
+  const saved = localStorage.getItem('ripple-cc-map');
+  if (saved) {
+    try {
+      const parsed = JSON.parse(saved);
+      Object.assign(CC_MAP, parsed);
+    } catch(e) {}
+  }
+}
+loadCCMap();
+
+// MIDI Learn UI — click any slider when Learn mode is armed
+let midiLearnArmed = false;
+
+function toggleMidiLearnMode() {
+  midiLearnArmed = !midiLearnArmed;
+  const btn = document.getElementById('btn-midi-learn');
+  const statusEl = document.getElementById('midi-learn-status');
+  if (midiLearnArmed) {
+    btn.textContent = '🎛 LEARN ON — hold knob in panel + turn physical knob';
+    btn.classList.add('active');
+    btn.style.background = '#D4A24E';
+    btn.style.color = '#111';
+    statusEl.textContent = 'Click any slider to assign...';
+    statusEl.style.color = '#D4A24E';
+  } else {
+    btn.textContent = '🎛 MIDI Learn';
+    btn.classList.remove('active');
+    btn.style.background = '';
+    btn.style.color = '';
+    statusEl.textContent = '';
+    midiLearnActive = false;
+    midiLearnTarget = null;
+    // Reset all highlights
+    document.querySelectorAll('.param input[type="range"]').forEach(s => {
+      s.style.outline = '';
+      s.style.outlineOffset = '';
+    });
+    document.querySelectorAll('.param label').forEach(l => l.style.color = '');
+  }
+}
+
+document.querySelectorAll('.param input[type="range"]').forEach(slider => {
+  // Click the LABEL to learn (when armed) — slider itself stays draggable
+  const label = slider.closest('.param')?.querySelector('label');
+  if (label) {
+    label.addEventListener('click', (e) => {
+      if (!midiLearnArmed) return;
+      e.preventDefault();
+      // Clear any previous highlight
+      document.querySelectorAll('.param input[type="range"]').forEach(s => {
+        s.style.outline = '';
+        s.style.outlineOffset = '';
+      });
+      midiLearnActive = true;
+      midiLearnTarget = slider.id;
+      const statusEl = document.getElementById('midi-learn-status');
+      statusEl.textContent = `🎯 Move a knob for "${slider.id}"...`;
+      statusEl.style.color = '#D4A24E';
+      // Highlight the slider
+      slider.style.outline = '2px solid #D4A24E';
+      slider.style.outlineOffset = '2px';
+      label.style.color = '#D4A24E';
+    });
+  }
+});
+
+// ========== MIDI MAP PANEL ==========
+// Cobalt 8 physical layout — matches the actual front panel left to right
+// Based on official MIDI CC implementation chart
+
+// OSC Section
+const COBALT_OSC = [
+  { cc: 16,  label: 'Param A1' },
+  { cc: 19,  label: 'Param B1' },
+  { cc: 62,  label: 'Algo 1' },
+  { cc: 18,  label: 'Mix' },
+  { cc: 63,  label: 'Algo 2' },
+  { cc: 17,  label: 'Param A2' },
+  { cc: 20,  label: 'Param B2' },
+];
+
+// Filter Section
+const COBALT_FILTER = [
+  { cc: 33,  label: 'Morph' },
+  { cc: 34,  label: 'Cutoff' },
+  { cc: 35,  label: 'Resonance' },
+];
+
+// Voice Section
+const COBALT_VOICE = [
+  { cc: 5,   label: 'Glide' },
+];
+
+// AMP Envelope
+const COBALT_AEG = [
+  { cc: 26,  label: 'AEG Att' },
+  { cc: 27,  label: 'AEG Dec' },
+  { cc: 28,  label: 'AEG Sus' },
+  { cc: 29,  label: 'AEG Rel' },
+];
+
+// Filter Envelope
+const COBALT_FEG = [
+  { cc: 22,  label: 'FEG Att' },
+  { cc: 23,  label: 'FEG Dec' },
+  { cc: 24,  label: 'FEG Sus' },
+  { cc: 25,  label: 'FEG Rel' },
+  { cc: 32,  label: 'FEG Amt' },
+];
+
+// Mod Envelope
+const COBALT_MEG = [
+  { cc: 43,  label: 'MEG Att' },
+  { cc: 44,  label: 'MEG Dec' },
+  { cc: 45,  label: 'MEG Sus' },
+  { cc: 46,  label: 'MEG Rel' },
+  { cc: 49,  label: 'MEG Depth' },
+];
+
+// LFO Section
+const COBALT_LFO = [
+  { cc: 36,  label: 'LFO1 Rate' },
+  { cc: 37,  label: 'LFO1 Depth' },
+  { cc: 47,  label: 'LFO2 Rate' },
+  { cc: 48,  label: 'LFO2 Depth' },
+];
+
+// FX & Global
+const COBALT_FX = [
+  { cc: 73,  label: 'FX Amt' },
+  { cc: 7,   label: 'Volume' },
+];
+
+const COBALT_MODWHEEL = { cc: 1, label: 'Mod Wheel' };
+
+// All sections for iteration
+const COBALT_SECTIONS = [
+  { name: 'OSC',    knobs: COBALT_OSC,    color: '#4a9' },
+  { name: 'FILTER', knobs: COBALT_FILTER, color: '#49a' },
+  { name: 'VOICE',  knobs: COBALT_VOICE,  color: '#a94' },
+  { name: 'AEG',    knobs: COBALT_AEG,    color: '#d4a24e' },
+  { name: 'FEG',    knobs: COBALT_FEG,    color: '#a4d' },
+  { name: 'MEG',    knobs: COBALT_MEG,    color: '#4ad' },
+  { name: 'LFO',    knobs: COBALT_LFO,    color: '#da4' },
+  { name: 'FX',     knobs: COBALT_FX,     color: '#a44' },
+];
+
+// Flat list for legacy compat
+const COBALT_LAYOUT = COBALT_SECTIONS.flatMap(s => s.knobs.map((k,i) => ({ ...k, cobaltLabel: k.label, position: -1, section: s.name })));
+
+function toggleMidiMap() {
+  const panel = document.getElementById('midi-map-panel');
+  panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+  if (panel.style.display === 'block') renderMidiMap();
+}
+
+function renderKnob(cc, cobaltLabel, value, pct, rippleParam, sectionColor, compact) {
+  const color = sectionColor || '#5588cc';
+  const angle = -135 + (pct / 100) * 270;
+  const mapped = rippleParam && rippleParam !== '—';
+  const sz = compact ? 34 : 40;
+  const r = compact ? 13 : 15;
+  const dia = r * 2;
+  const cx = sz / 2, cy = sz / 2;
+  const ptrLen = compact ? 9 : 11;
+  return `<div id="midi-row-${cc}" style="text-align:center; padding:${compact?'3px 2px':'4px 3px'}; border-radius:6px; transition:background 0.2s; cursor:${midiLearnArmed ? 'pointer' : 'default'}; opacity:${mapped ? 1 : 0.5}; min-width:${compact?42:50}px;">
+    <div style="font-size:${compact?7:8}px; color:#556; margin-bottom:2px;">${cobaltLabel}</div>
+    <div style="width:${sz}px; height:${sz}px; margin:0 auto; position:relative;">
+      <svg width="${sz}" height="${sz}" viewBox="0 0 ${sz} ${sz}">
+        <circle cx="${cx}" cy="${cy}" r="${r}" fill="#111822" stroke="#2a3444" stroke-width="2"/>
+        <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${color}33" stroke-width="2.5" 
+          stroke-dasharray="${Math.PI * dia * 0.75}" stroke-dashoffset="0"
+          transform="rotate(135 ${cx} ${cy})" stroke-linecap="round"/>
+        <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${color}" stroke-width="2.5" 
+          stroke-dasharray="${Math.PI * dia * 0.75 * pct / 100} ${Math.PI * dia}" stroke-dashoffset="0"
+          transform="rotate(135 ${cx} ${cy})" stroke-linecap="round" opacity="0.9"/>
+        <line x1="${cx}" y1="${cy}" x2="${cx + ptrLen * Math.cos((angle - 90) * Math.PI / 180)}" 
+          y2="${cy + ptrLen * Math.sin((angle - 90) * Math.PI / 180)}" 
+          stroke="#eee" stroke-width="1.5" stroke-linecap="round"/>
+        <circle cx="${cx}" cy="${cy}" r="2.5" fill="#1a2233" stroke="#334" stroke-width="0.5"/>
+      </svg>
+    </div>
+    <div style="font-size:${compact?7:8}px; color:#445; margin-top:1px;">CC${cc}</div>
+    ${mapped ? `<div style="font-size:${compact?8:9}px; color:${color}; font-weight:700; margin-top:1px;">${rippleParam}</div>` : ''}
+    ${mapped ? `<div style="font-size:${compact?7:8}px; color:#667; margin-top:0px;">${value}</div>` : ''}
+  </div>`;
+}
+
+function renderMidiMap() {
+  const container = document.getElementById('cobalt-panel');
+  if (!container) return;
+  
+  function getKnobData(knob) {
+    const mapping = CC_MAP[knob.cc];
+    const rippleParam = mapping ? mapping.param : '—';
+    let currentVal = '—', pct = 0;
+    if (mapping) {
+      const slider = document.getElementById(mapping.param);
+      if (slider) {
+        currentVal = parseFloat(slider.value).toFixed(
+          ['echoes','depth','gap','qwindow'].includes(mapping.param) ? 0 : 2
+        );
+        pct = (slider.value - mapping.min) / (mapping.max - mapping.min) * 100;
+      }
+    }
+    return { rippleParam, currentVal, pct };
+  }
+  
+  function renderSection(knobs, color, compact) {
+    let h = '';
+    for (const knob of knobs) {
+      const d = getKnobData(knob);
+      h += renderKnob(knob.cc, knob.label, d.currentVal, d.pct, d.rippleParam, color, compact);
+    }
+    return h;
+  }
+  
+  // Mod wheel data
+  const mwMapping = CC_MAP[1];
+  let mwPct = 0, mwVal = '—', mwParam = '—';
+  if (mwMapping) {
+    const s = document.getElementById(mwMapping.param);
+    if (s) {
+      mwVal = parseFloat(s.value).toFixed(2);
+      mwPct = ((s.value - mwMapping.min) / (mwMapping.max - mwMapping.min) * 100);
+    }
+    mwParam = mwMapping.param;
+  }
+  
+  container.innerHTML = `
+  <!-- Cobalt 8 Physical Panel -->
+  <div style="background:linear-gradient(180deg, #0e1520 0%, #0a1018 40%, #080c14 100%); border-radius:10px; border:1px solid #1a2a3a; padding:0; overflow:hidden; position:relative;">
+    
+    <!-- Top bezel / brand strip -->
+    <div style="background:linear-gradient(90deg, #0d1520, #101828, #0d1520); padding:6px 16px; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #1a2838;">
+      <div style="font-size:10px; letter-spacing:4px; color:#3366aa; font-weight:300; text-transform:uppercase;">Modal Electronics</div>
+      <div style="font-size:13px; letter-spacing:6px; color:#4488cc; font-weight:700; text-transform:uppercase;">COBALT 8</div>
+      <div style="font-size:8px; color:#334; letter-spacing:2px;">→ RIPPLE ENGINE</div>
+    </div>
+    
+    <!-- Main panel body -->
+    <div style="display:flex; padding:10px 8px 8px; gap:0; align-items:stretch;">
+      
+      <!-- MOD STRIP (far left) -->
+      <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; padding:4px 8px; border-right:1px solid #1a2838; min-width:36px;">
+        <div style="font-size:7px; color:#556; margin-bottom:4px; text-transform:uppercase; letter-spacing:1px;">Mod</div>
+        <div style="width:16px; height:70px; background:#111822; border-radius:8px; position:relative; overflow:hidden; border:1px solid #2a3444;">
+          <div style="position:absolute; bottom:0; width:100%; height:${mwPct}%; background:linear-gradient(0deg, #2255aa, #4488cc); border-radius:7px; transition:height 0.15s;"></div>
+        </div>
+        <div style="font-size:7px; color:#4488cc; margin-top:3px;">CC1</div>
+        ${mwMapping ? `<div style="font-size:7px; color:#667; margin-top:1px;">${mwParam}</div>` : ''}
+      </div>
+      
+      <!-- LEFT HALF: OSC + FILTER + VOICE -->
+      <div style="flex:1; display:flex; flex-direction:column; padding:0 4px;">
+        
+        <!-- Section labels row -->
+        <div style="display:flex; gap:0; margin-bottom:2px;">
+          <div style="flex:7; font-size:7px; color:#4a9; text-transform:uppercase; letter-spacing:2px; padding-left:4px; border-bottom:1px solid #4a933;">OSCILLATOR</div>
+          <div style="flex:3; font-size:7px; color:#49a; text-transform:uppercase; letter-spacing:2px; padding-left:4px; border-bottom:1px solid #49a33;">FILTER</div>
+          <div style="flex:1; font-size:7px; color:#a94; text-transform:uppercase; letter-spacing:2px; padding-left:2px; border-bottom:1px solid #a9433;">VCE</div>
+        </div>
+        
+        <!-- Knobs row -->
+        <div style="display:flex; gap:0;">
+          <!-- OSC knobs -->
+          <div style="flex:7; display:flex; justify-content:space-around;">
+            ${renderSection(COBALT_OSC, '#4a9', true)}
+          </div>
+          <!-- FILTER knobs -->
+          <div style="flex:3; display:flex; justify-content:space-around; border-left:1px solid #1a2838;">
+            ${renderSection(COBALT_FILTER, '#49a', true)}
+          </div>
+          <!-- VOICE knob -->
+          <div style="flex:1; display:flex; justify-content:center; border-left:1px solid #1a2838;">
+            ${renderSection(COBALT_VOICE, '#a94', true)}
+          </div>
+        </div>
+      </div>
+      
+      <!-- CENTER: OLED Display -->
+      <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; padding:4px 10px; border-left:1px solid #1a2838; border-right:1px solid #1a2838; min-width:80px;">
+        <div style="width:70px; height:50px; background:#000; border:2px solid #1a2838; border-radius:4px; display:flex; align-items:center; justify-content:center; flex-direction:column;">
+          <div style="font-size:9px; color:#4488cc; font-family:monospace; letter-spacing:1px;">RIPPLE</div>
+          <div style="font-size:7px; color:#336; margin-top:2px;">${Object.keys(CC_MAP).filter(k => CC_MAP[k]).length} mapped</div>
+        </div>
+        <div style="font-size:7px; color:#334; margin-top:4px;">ENCODER</div>
+      </div>
+      
+      <!-- RIGHT HALF: ENVELOPES + LFO + FX -->
+      <div style="flex:1; display:flex; flex-direction:column; padding:0 4px;">
+        
+        <!-- Section labels row -->
+        <div style="display:flex; gap:0; margin-bottom:2px;">
+          <div style="flex:4; font-size:7px; color:#d4a24e; text-transform:uppercase; letter-spacing:1px; padding-left:4px; border-bottom:1px solid #d4a24e33;">AMP EG</div>
+          <div style="flex:5; font-size:7px; color:#a4d; text-transform:uppercase; letter-spacing:1px; padding-left:4px; border-bottom:1px solid #a4d3;">FILTER EG</div>
+          <div style="flex:5; font-size:7px; color:#4ad; text-transform:uppercase; letter-spacing:1px; padding-left:4px; border-bottom:1px solid #4ad3;">MOD EG</div>
+          <div style="flex:4; font-size:7px; color:#da4; text-transform:uppercase; letter-spacing:1px; padding-left:4px; border-bottom:1px solid #da43;">LFO</div>
+          <div style="flex:2; font-size:7px; color:#a44; text-transform:uppercase; letter-spacing:1px; padding-left:4px; border-bottom:1px solid #a443;">FX</div>
+        </div>
+        
+        <!-- Knobs row -->
+        <div style="display:flex; gap:0;">
+          <!-- AEG -->
+          <div style="flex:4; display:flex; justify-content:space-around;">
+            ${renderSection(COBALT_AEG, '#d4a24e', true)}
+          </div>
+          <!-- FEG -->
+          <div style="flex:5; display:flex; justify-content:space-around; border-left:1px solid #1a2838;">
+            ${renderSection(COBALT_FEG, '#a4d', true)}
+          </div>
+          <!-- MEG -->
+          <div style="flex:5; display:flex; justify-content:space-around; border-left:1px solid #1a2838;">
+            ${renderSection(COBALT_MEG, '#4ad', true)}
+          </div>
+          <!-- LFO -->
+          <div style="flex:4; display:flex; justify-content:space-around; border-left:1px solid #1a2838;">
+            ${renderSection(COBALT_LFO, '#da4', true)}
+          </div>
+          <!-- FX -->
+          <div style="flex:2; display:flex; justify-content:space-around; border-left:1px solid #1a2838;">
+            ${renderSection(COBALT_FX, '#a44', true)}
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Bottom bezel -->
+    <div style="background:#0a0e16; padding:4px 16px; display:flex; justify-content:space-between; align-items:center; border-top:1px solid #1a2838;">
+      <div style="font-size:7px; color:#334; letter-spacing:1px;">VIRTUAL ANALOGUE SYNTHESIS</div>
+      <div style="display:flex; gap:12px;">
+        <div style="font-size:7px; color:#334;">MIDI CH 1</div>
+        <div style="font-size:7px; color:#334;">USB</div>
+      </div>
+    </div>
+  </div>`;
+  
+  // Add MIDI Learn click handlers
+  for (const knob of COBALT_LAYOUT) {
+    const el = document.getElementById('midi-row-' + knob.cc);
+    if (!el) continue;
+    if (midiLearnArmed) {
+      el.addEventListener('mousedown', () => {
+        const mapping = CC_MAP[knob.cc];
+        const paramId = mapping ? mapping.param : null;
+        if (paramId) {
+          midiLearnActive = true;
+          midiLearnTarget = paramId;
+          activeSlider = paramId;
+          el.style.background = 'rgba(68,136,204,0.2)';
+          el.style.outline = '2px solid #4488cc';
+          document.getElementById('midi-learn-status').textContent = `🎯 Turn a knob → CC? → ${paramId}`;
+          document.getElementById('midi-learn-status').style.color = '#4488cc';
+        } else {
+          el.style.background = 'rgba(68,136,204,0.15)';
+          document.getElementById('midi-learn-status').textContent = `CC${knob.cc} not mapped — use GUI slider learn`;
+          document.getElementById('midi-learn-status').style.color = '#888';
+        }
+      });
+      el.addEventListener('mouseup', () => { activeSlider = null; });
+    }
+  }
+}
+
+// Refresh map display when open
+setInterval(() => {
+  const panel = document.getElementById('midi-map-panel');
+  if (panel && panel.style.display === 'block') renderMidiMap();
+}, 150);
+
+// ========== PARAMETER WIRING ==========
+document.querySelectorAll('.param input[type="range"]').forEach(input => {
+  input.addEventListener('input', () => {
+    const id = input.id;
+    const val = input.value;
+    const display = document.getElementById('val-' + id);
+    if (display) display.textContent = parseFloat(val).toFixed(id === 'echoes' || id === 'depth' || id === 'gap' || id === 'qwindow' ? 0 : 3);
+  });
+});
+
+// Reverb knob → actual reverb mix
+document.getElementById('reverb').addEventListener('input', (e) => {
+  const v = parseFloat(e.target.value);
+  if (dryGain) dryGain.gain.value = 1 - v * 0.5;
+  if (reverbGain) reverbGain.gain.value = v;
+});
+
+// Sequence mode buttons
+document.querySelectorAll('#seq-presets .preset-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('#seq-presets .preset-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentSeqMode = btn.dataset.seq;
+    document.getElementById('val-seq').textContent = currentSeqMode;
+  });
+});
+
+// ========== PRESETS ==========
+const PRESETS = {
+  // === START HERE — one thing at a time ===
+  // Pure sine, no harmonics, no echoes. Just the tone.
+  'pre-pure':      { attack: 5, adsrDecay: 200, sustain: 0.3, release: 1500, decay: 0.618, echoes: 1, drift: 0, gap: 120, depth: 0, bloom: 0, predelay: 150, sym: 0, reverb: 0.1, width: 0, warmth: 0, seq: 'fibonacci' },
+  // Clean bell — short attack, low sustain, a few harmonics
+  'pre-bell':      { attack: 3, adsrDecay: 150, sustain: 0.1, release: 2000, decay: 0.618, echoes: 1, drift: 0.2, gap: 120, depth: 4, bloom: 0.3, predelay: 80, sym: 0, reverb: 0.2, width: 0, warmth: 0.1, seq: 'fibonacci' },
+  // Pluck — snappy attack, fast decay, short release
+  'pre-pluck':     { attack: 1, adsrDecay: 80, sustain: 0.05, release: 600, decay: 0.618, echoes: 1, drift: 0.1, gap: 120, depth: 3, bloom: 0.2, predelay: 50, sym: 0, reverb: 0.15, width: 0, warmth: 0.2, seq: 'fibonacci' },
+  // Singing bowl — slow attack, long sustain, rich harmonics
+  'pre-bowl':      { attack: 80, adsrDecay: 500, sustain: 0.6, release: 3000, decay: 0.618, echoes: 1, drift: 0.3, gap: 120, depth: 6, bloom: 0.4, predelay: 200, sym: 0.3, reverb: 0.4, width: 0.2, warmth: 0.4, seq: 'fibonacci' },
+  // Pad — slow everything, long sustain, warm
+  'pre-pad':       { attack: 300, adsrDecay: 800, sustain: 0.7, release: 4000, decay: 0.618, echoes: 1, drift: 0, gap: 120, depth: 2, bloom: 0.2, predelay: 400, sym: 0.2, reverb: 0.5, width: 0.3, warmth: 0.6, seq: 'fibonacci' },
+  // === RIPPLE STYLES — now add the echoes ===
+  // Water drip — bell tone + fast fibonacci echoes, rapid decay
+  'pre-drip':      { attack: 2, adsrDecay: 100, sustain: 0.1, release: 800, decay: 0.5, echoes: 6, drift: 0.4, gap: 80, depth: 3, bloom: 0.2, predelay: 60, sym: 0, reverb: 0.3, width: 0.4, warmth: 0.1, seq: 'fibonacci' },
+  // Cathedral — bowl tone + long slow echoes, lots of reverb
+  'pre-cathedral': { attack: 40, adsrDecay: 400, sustain: 0.5, release: 3000, decay: 0.72, echoes: 8, drift: 0.3, gap: 250, depth: 6, bloom: 0.4, predelay: 200, sym: 0.4, reverb: 0.8, width: 0.6, warmth: 0.5, seq: 'fibonacci' },
+  // Golden spiral — φ decay, golden timing, harmonics bloom on each echo
+  'pre-spiral':    { attack: 5, adsrDecay: 200, sustain: 0.3, release: 2000, decay: 0.618, echoes: 10, drift: 0.5, gap: 100, depth: 6, bloom: 0.6, predelay: 120, sym: 0.3, reverb: 0.4, width: 0.7, warmth: 0.2, seq: 'golden' },
+  // Deep space — wide, dark, slow, sub-bass resonance
+  'pre-deep':      { attack: 100, adsrDecay: 600, sustain: 0.5, release: 5000, decay: 0.75, echoes: 5, drift: 0.8, gap: 450, depth: 3, bloom: 0.2, predelay: 300, sym: 0.7, reverb: 0.9, width: 0.4, warmth: 0.7, seq: 'golden' },
+  // Frippertronics — long tape-like echoes, linear decay, warm and dark
+  'pre-fripp':     { attack: 10, adsrDecay: 300, sustain: 0.4, release: 2500, decay: 0.65, echoes: 8, drift: 0.7, gap: 350, depth: 2, bloom: 0.1, predelay: 100, sym: 0.2, reverb: 0.6, width: 0.5, warmth: 0.6, seq: 'linear' },
+};
+
+// ========== PRESET POPUP ==========
+const PRESET_INFO = {
+  'pre-pure': {
+    title: 'Pure Tone',
+    listen: 'Just a <strong>single sine wave</strong> — the simplest sound possible. No harmonics, no echoes, no reverb. This is your baseline. Notice how clean and "empty" it sounds.',
+    hint: 'Try playing a few notes. This is what everything else builds on top of.',
+  },
+  'pre-bell': {
+    title: 'Bell',
+    listen: 'Listen for the <strong>shimmer after the strike</strong> — those are the first 4 harmonics ringing out. The tone is short (low sustain) but the harmonics give it color. Compare to Pure Tone — hear how much richer it is?',
+    hint: 'Try the Overtone Depth slider — more harmonics = more metallic. Fewer = warmer.',
+  },
+  'pre-pluck': {
+    title: 'Pluck',
+    listen: 'Notice the <strong>snap at the front</strong> — ultra-fast attack, then it drops away quickly. Like a string being plucked. The sound is mostly in the first 200ms.',
+    hint: 'Drag the Attack slider up slowly and hear it go from pluck → mallet → bow.',
+  },
+  'pre-bowl': {
+    title: 'Singing Bowl',
+    listen: 'The tone <strong>swells in slowly</strong> (80ms attack) instead of hitting. Listen for the overtones arriving <strong>after</strong> the fundamental — that\'s the predelay. The bowl "opens up" over time.',
+    hint: 'Play one note and just listen to how long it rings. That\'s a 3-second release.',
+  },
+  'pre-pad': {
+    title: 'Pad',
+    listen: 'This one <strong>breathes</strong>. 300ms attack means the sound fades IN instead of striking. High sustain keeps it alive. It\'s warm because of the detuned pair (Warmth knob).',
+    hint: 'Hold down or play notes slowly. This preset wants space between notes.',
+  },
+  'pre-drip': {
+    title: 'Water Drip',
+    listen: 'Now you hear <strong>echoes</strong>. Each repeat comes faster at first (Fibonacci: 1,1,2,3,5...) and each one is quieter (φ decay). Listen for how the gaps <strong>widen</strong> — like ripples spreading in a pond.',
+    hint: 'Play a single note and count the echoes. Watch the timeline at the bottom of the visualization.',
+  },
+  'pre-cathedral': {
+    title: 'Cathedral',
+    listen: 'The reverb is way up — the sound <strong>fills a huge space</strong>. Echoes are slow and wide (250ms base gap). Listen for the harmonics blooming on each echo — later echoes are actually <strong>richer</strong> than the first.',
+    hint: 'Play just 2-3 notes and let them overlap. The echoes will create harmonies you didn\'t play.',
+  },
+  'pre-spiral': {
+    title: 'Golden Spiral',
+    listen: 'This is the full sacred geometry engine. Echoes decay at <strong>exactly φ (0.618)</strong> and timing follows the <strong>golden ratio</strong> between gaps. 10 echoes, wide stereo — each echo drifts to a different position. The harmonics <strong>bloom more</strong> on each repeat.',
+    hint: 'Play one note and watch the visualization — the rings follow the golden spiral.',
+  },
+  'pre-deep': {
+    title: 'Deep Space',
+    listen: 'Feel the <strong>sub-bass</strong> — the sympathetic resonance is high, adding an octave below every note. High drift means later echoes lose their brightness and get <strong>darker</strong>. Long gaps — the echoes hang in space.',
+    hint: 'Play low notes (left side of piano). Feel it in your chest, not just your ears.',
+  },
+  'pre-fripp': {
+    title: 'Frippertronics',
+    listen: 'This is <strong>tape loop style</strong> — linear decay (not Fibonacci), so echoes are evenly spaced like a tape delay. High drift makes each pass <strong>darker and warmer</strong>, like analog degradation. Low harmonics — the tone simplifies as it repeats.',
+    hint: 'Play a slow melodic phrase. Each note will layer over the echoes of the last one — that\'s the Fripp magic.',
+  },
+};
+
+let popupTimeout = null;
+
+function showPopup(presetId) {
+  const info = PRESET_INFO[presetId];
+  if (!info) return;
+  
+  const popup = document.getElementById('preset-popup');
+  document.getElementById('popup-title').textContent = info.title;
+  document.getElementById('popup-listen').innerHTML = '🎧 ' + info.listen;
+  document.getElementById('popup-hint').textContent = '💡 ' + info.hint;
+  
+  popup.classList.add('visible');
+  
+  // Auto-hide after 8 seconds
+  clearTimeout(popupTimeout);
+  popupTimeout = setTimeout(() => hidePopup(), 8000);
+}
+
+function hidePopup() {
+  document.getElementById('preset-popup').classList.remove('visible');
+  clearTimeout(popupTimeout);
+}
+
+// Map preset keys to input IDs (some differ)
+const PARAM_TO_INPUT = {
+  attack: 'attack',
+  adsrDecay: 'adsr-decay',
+  sustain: 'sustain',
+  release: 'release',
+  decay: 'decay',
+  echoes: 'echoes',
+  drift: 'drift',
+  gap: 'gap',
+  depth: 'depth',
+  bloom: 'bloom',
+  predelay: 'predelay',
+  sym: 'sym',
+  reverb: 'reverb',
+  width: 'width',
+  warmth: 'warmth',
+};
+
+// ========== SEQUENCER ==========
+let seqState = 'idle'; // idle | recording | playing
+let seqNotes = [];     // { midi, name, time (relative ms) }
+let seqStartTime = 0;
+let seqDuration = 0;
+let seqLoopTimer = null;
+let seqPlayStart = 0;
+
+const seqRecordBtn = document.getElementById('seq-record');
+const seqPlayBtn = document.getElementById('seq-play');
+const seqStopBtn = document.getElementById('seq-stop');
+const seqInfo = document.getElementById('seq-info');
+const seqDisplay = document.getElementById('seq-display');
+const seqPlayhead = document.getElementById('seq-playhead');
+
+seqRecordBtn.addEventListener('click', () => {
+  if (seqState === 'recording') {
+    // Stop recording
+    seqDuration = performance.now() - seqStartTime;
+    seqState = 'idle';
+    seqRecordBtn.classList.remove('recording');
+    seqRecordBtn.textContent = '⏺ Record';
+    seqPlayBtn.disabled = seqNotes.length === 0;
+    seqInfo.textContent = `${seqNotes.length} notes, ${(seqDuration / 1000).toFixed(1)}s loop`;
+    drawSeqDisplay();
+  } else {
+    // Stop playback if playing
+    if (seqState === 'playing') stopSequence();
+    // Start recording
+    seqNotes = [];
+    seqStartTime = performance.now();
+    seqState = 'recording';
+    seqRecordBtn.classList.add('recording');
+    seqRecordBtn.textContent = '⏺ Stop';
+    seqPlayBtn.disabled = true;
+    seqStopBtn.disabled = true;
+    seqInfo.textContent = 'Recording... play your phrase';
+    seqDisplay.style.display = 'none';
+  }
+});
+
+seqPlayBtn.addEventListener('click', () => {
+  if (seqNotes.length === 0) return;
+  startSequence();
+});
+
+seqStopBtn.addEventListener('click', () => {
+  stopSequence();
+});
+
+function recordNote(midi, name) {
+  if (seqState !== 'recording') return;
+  const time = performance.now() - seqStartTime;
+  seqNotes.push({ midi, name, time });
+}
+
+function startSequence() {
+  initAudio();
+  seqState = 'playing';
+  seqPlayBtn.disabled = true;
+  seqStopBtn.disabled = false;
+  seqRecordBtn.disabled = true;
+  seqInfo.textContent = `Looping ${seqNotes.length} notes — tweak the knobs!`;
+  seqDisplay.style.display = 'block';
+  
+  const speed = parseFloat(document.getElementById('loopspeed').value);
+  const loopMs = seqDuration / speed;
+  
+  playSequenceOnce(speed);
+  
+  // Use recursive setTimeout so speed changes take effect each loop
+  function scheduleNextLoop() {
+    const currentSpeed = parseFloat(document.getElementById('loopspeed').value);
+    const nextLoopMs = seqDuration / currentSpeed;
+    seqLoopTimer = setTimeout(() => {
+      if (seqState !== 'playing') return;
+      playSequenceOnce(currentSpeed);
+      scheduleNextLoop();
+    }, nextLoopMs);
+  }
+  scheduleNextLoop();
+  
+  // Playhead animation
+  seqPlayStart = performance.now();
+  animatePlayhead();
+}
+
+function playSequenceOnce(speed) {
+  const now = audioCtx.currentTime;
+  seqPlayStart = performance.now();
+  
+  for (const note of seqNotes) {
+    const offsetSec = (note.time / 1000) / speed;
+    const freq = midiToFreq(note.midi);
+    const params = getParams();
+    const gaps = getGapSequence(params.gap / 1000, params.echoes, params.seq);
+    
+    // Schedule the ripple at the right time
+    let time = now + offsetSec;
+    for (let i = 0; i <= params.echoes; i++) {
+      const amp = 0.3 * Math.pow(params.decay, i);
+      playTone(freq, time, amp, i, params);
+      if (i < params.echoes) time += gaps[i];
+    }
+    
+    // Visual ripple (delayed)
+    setTimeout(() => {
+      if (seqState !== 'playing') return;
+      activeRipples.push({
+        x: Math.random() * 0.6 + 0.2,
+        y: Math.random() * 0.5 + 0.25,
+        freq,
+        noteName: note.name,
+        startTime: performance.now(),
+        params: { ...getParams() },
+        gaps: getGapSequence(getParams().gap / 1000, getParams().echoes, getParams().seq),
+        echoes: getParams().echoes,
+      });
+    }, note.time / speed);
+  }
+}
+
+function animatePlayhead() {
+  if (seqState !== 'playing') return;
+  const speed = parseFloat(document.getElementById('loopspeed').value);
+  const loopMs = seqDuration / speed;
+  const elapsed = (performance.now() - seqPlayStart) % loopMs;
+  const pct = (elapsed / loopMs) * 100;
+  seqPlayhead.style.left = pct + '%';
+  requestAnimationFrame(animatePlayhead);
+}
+
+function stopSequence() {
+  seqState = 'idle';
+  clearInterval(seqLoopTimer);
+  seqLoopTimer = null;
+  seqPlayBtn.disabled = false;
+  seqStopBtn.disabled = true;
+  seqRecordBtn.disabled = false;
+  seqInfo.textContent = `${seqNotes.length} notes, ${(seqDuration / 1000).toFixed(1)}s loop — ready`;
+}
+
+function drawSeqDisplay() {
+  if (seqNotes.length === 0) return;
+  seqDisplay.style.display = 'block';
+  const canvas = document.getElementById('seq-canvas');
+  canvas.width = canvas.parentElement.clientWidth * 2;
+  canvas.height = 60;
+  const c = canvas.getContext('2d');
+  c.clearRect(0, 0, canvas.width, canvas.height);
+  
+  // Find pitch range
+  const midis = seqNotes.map(n => n.midi);
+  const minMidi = Math.min(...midis) - 2;
+  const maxMidi = Math.max(...midis) + 2;
+  const range = maxMidi - minMidi || 1;
+  
+  for (const note of seqNotes) {
+    const x = (note.time / seqDuration) * canvas.width;
+    const y = canvas.height - ((note.midi - minMidi) / range) * (canvas.height - 8) - 4;
+    c.beginPath();
+    c.arc(x, y, 3, 0, Math.PI * 2);
+    c.fillStyle = '#d4a24e';
+    c.fill();
+  }
+}
+
+// Hook into noteOn to also record
+const originalNoteOn = noteOn;
+noteOn = function(midi, name, keyEl) {
+  recordNote(midi, name);
+  originalNoteOn(midi, name, keyEl);
+};
+
+// ========== AUTO-EVOLVE ENGINE ==========
+let fanMode = 'off';
+let fanStartTime = 0;
+let fanAnimFrame = null;
+
+/*
+  Each mode defines which parameters breathe, their range, and their phase offset.
+  Phase offsets use PHI so parameters never sync — creates organic, non-repeating movement.
+  The base cycle is a sine wave; speed is controlled by the Evolve Speed slider.
+*/
+const FAN_MODES = {
+  breathe: {
+    desc: 'Gentle breathing — bloom and reverb swell and recede like lungs.',
+    params: [
+      { id: 'bloom',   min: 0.05, max: 0.7,  phase: 0 },
+      { id: 'reverb',  min: 0.15, max: 0.7,  phase: Math.PI * PHI },
+      { id: 'warmth',  min: 0.1,  max: 0.6,  phase: Math.PI * PHI * 2 },
+      { id: 'release', min: 800,  max: 4000, phase: Math.PI / PHI },
+    ],
+    cycleSec: 12,
+  },
+  bloom: {
+    desc: 'Harmonics slowly open up — from pure tone to full overtone series and back.',
+    params: [
+      { id: 'depth',    min: 0,    max: 10,  phase: 0 },
+      { id: 'bloom',    min: 0,    max: 0.8, phase: Math.PI * 0.3 },
+      { id: 'predelay', min: 30,   max: 500, phase: Math.PI * PHI },
+      { id: 'sym',      min: 0,    max: 0.6, phase: Math.PI * PHI * 1.5 },
+      { id: 'drift',    min: 0,    max: 0.7, phase: Math.PI / 3 },
+    ],
+    cycleSec: 20,
+  },
+  spiral: {
+    desc: 'Multiple parameters orbit on golden ratio phase — nothing repeats the same way twice.',
+    params: [
+      { id: 'bloom',    min: 0.1,  max: 0.8,  phase: 0 },
+      { id: 'decay',    min: 0.4,  max: 0.85, phase: Math.PI * PHI },
+      { id: 'gap',      min: 60,   max: 350,  phase: Math.PI * PHI * 2 },
+      { id: 'depth',    min: 2,    max: 8,    phase: Math.PI * PHI * 3 },
+      { id: 'width',    min: 0,    max: 0.9,  phase: Math.PI * PHI * 4 },
+      { id: 'drift',    min: 0.1,  max: 0.8,  phase: Math.PI * PHI * 5 },
+      { id: 'reverb',   min: 0.2,  max: 0.8,  phase: Math.PI * PHI * 6 },
+      { id: 'warmth',   min: 0,    max: 0.6,  phase: Math.PI * PHI * 7 },
+    ],
+    cycleSec: 30,
+  },
+  journey: {
+    desc: 'Full arc — simple to complex to simple. A 60-second voyage through the harmonic series.',
+    params: [
+      // These use a single slow wave — one big arc
+      { id: 'depth',    min: 0,    max: 12,   phase: 0 },
+      { id: 'bloom',    min: 0,    max: 0.9,  phase: 0.2 },
+      { id: 'echoes',   min: 1,    max: 12,   phase: 0.1 },
+      { id: 'decay',    min: 0.4,  max: 0.85, phase: 0.15 },
+      { id: 'gap',      min: 50,   max: 400,  phase: Math.PI * 0.5 },
+      { id: 'reverb',   min: 0.1,  max: 0.9,  phase: 0.3 },
+      { id: 'drift',    min: 0,    max: 0.9,  phase: 0.5 },
+      { id: 'sym',      min: 0,    max: 0.7,  phase: 0.4 },
+      { id: 'width',    min: 0,    max: 0.9,  phase: 0.6 },
+      { id: 'warmth',   min: 0,    max: 0.7,  phase: 0.35 },
+      { id: 'attack',   min: 3,    max: 200,  phase: Math.PI * 0.8 },
+      { id: 'release',  min: 500,  max: 5000, phase: 0.25 },
+    ],
+    cycleSec: 60,
+  },
+};
+
+// Map input IDs to their slider elements (for auto-evolve)
+const PARAM_ID_MAP = {
+  'bloom': 'bloom', 'reverb': 'reverb', 'warmth': 'warmth', 'release': 'release',
+  'depth': 'depth', 'predelay': 'predelay', 'sym': 'sym', 'drift': 'drift',
+  'decay': 'decay', 'gap': 'gap', 'width': 'width', 'echoes': 'echoes',
+  'attack': 'attack',
+};
+
+function setParamValue(id, value) {
+  const input = document.getElementById(id);
+  if (!input) return;
+  // Clamp to slider range
+  const min = parseFloat(input.min);
+  const max = parseFloat(input.max);
+  const step = parseFloat(input.step) || 1;
+  value = Math.max(min, Math.min(max, value));
+  // Round to step
+  value = Math.round(value / step) * step;
+  input.value = value;
+  input.dispatchEvent(new Event('input'));
+  
+  // Live-update reverb gain
+  if (id === 'reverb') {
+    if (dryGain) dryGain.gain.value = 1 - value * 0.5;
+    if (reverbGain) reverbGain.gain.value = value;
+  }
+}
+
+function fanTick() {
+  if (fanMode === 'off') return;
+  
+  const mode = FAN_MODES[fanMode];
+  if (!mode) return;
+  
+  const speed = parseFloat(document.getElementById('fanspeed').value);
+  const elapsed = (performance.now() - fanStartTime) / 1000;
+  const cyclePos = (elapsed * speed) / mode.cycleSec;
+  
+  for (const p of mode.params) {
+    // Sine wave oscillation with unique phase offset
+    const wave = Math.sin(cyclePos * Math.PI * 2 + p.phase);
+    // Map -1..1 to min..max
+    const normalized = (wave + 1) / 2;
+    const value = p.min + normalized * (p.max - p.min);
+    setParamValue(p.id, value);
+  }
+  
+  fanAnimFrame = requestAnimationFrame(fanTick);
+}
+
+function startFan(mode) {
+  fanMode = mode;
+  fanStartTime = performance.now();
+  
+  // Update UI
+  document.querySelectorAll('#fan-modes .preset-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.fan === mode);
+  });
+  
+  const info = FAN_MODES[mode];
+  document.getElementById('fan-info').textContent = info ? '🌀 ' + info.desc : '';
+  
+  if (fanAnimFrame) cancelAnimationFrame(fanAnimFrame);
+  fanTick();
+}
+
+function stopFan() {
+  fanMode = 'off';
+  if (fanAnimFrame) {
+    cancelAnimationFrame(fanAnimFrame);
+    fanAnimFrame = null;
+  }
+  document.querySelectorAll('#fan-modes .preset-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.fan === 'off');
+  });
+  document.getElementById('fan-info').textContent = 'Auto-evolve off. Knobs are yours.';
+}
+
+// Wire up fan mode buttons
+document.querySelectorAll('#fan-modes .preset-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const mode = btn.dataset.fan;
+    if (mode === 'off' || mode === fanMode) {
+      stopFan();
+    } else {
+      startFan(mode);
+    }
+  });
+});
+
+// ========== PRESET LOADING ==========
+Object.keys(PRESETS).forEach(id => {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.addEventListener('click', () => {
+    // Deactivate all preset buttons, activate this one
+    document.querySelectorAll('.preset-btn:not([data-seq])').forEach(b => b.classList.remove('active'));
+    el.classList.add('active');
+    
+    // Show listening guide
+    showPopup(id);
+    
+    const p = PRESETS[id];
+    Object.keys(p).forEach(key => {
+      if (key === 'seq') {
+        currentSeqMode = p.seq;
+        document.querySelectorAll('#seq-presets .preset-btn').forEach(b => {
+          b.classList.toggle('active', b.dataset.seq === p.seq);
+        });
+        document.getElementById('val-seq').textContent = p.seq;
+      } else {
+        const inputId = PARAM_TO_INPUT[key] || key;
+        const input = document.getElementById(inputId);
+        if (input) {
+          input.value = p[key];
+          input.dispatchEvent(new Event('input'));
+        }
+      }
+    });
+    
+    // Sync harmonics toggle with preset
+    if (p.depth > 0 && !harmonicsActive) toggleHarmonics();
+    if (p.depth === 0 && harmonicsActive) toggleHarmonics();
+    
+    // Update reverb gain live
+    if (dryGain) dryGain.gain.value = 1 - p.reverb * 0.5;
+    if (reverbGain) reverbGain.gain.value = p.reverb;
+    
+    // Sync strip controls
+    syncStripFromOriginal();
+  });
+});
+
+// ========== QUICK AUDIO CAPTURE ==========
+let captureRecorder = null;
+let captureChunks = [];
+function startCapture() {
+  initAudio();
+  const dest = audioCtx.createMediaStreamDestination();
+  masterGain.connect(dest);
+  captureRecorder = new MediaRecorder(dest.stream);
+  captureChunks = [];
+  captureRecorder.ondataavailable = e => captureChunks.push(e.data);
+  captureRecorder.onstop = () => {
+    const blob = new Blob(captureChunks, { type: 'audio/webm' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'ripple-capture.webm'; a.click();
+  };
+  captureRecorder.start();
+  document.getElementById('s-midi-status').textContent = '🔴 REC';
+  document.getElementById('s-midi-status').style.color = '#c44';
+}
+function stopCapture() {
+  if (captureRecorder && captureRecorder.state === 'recording') {
+    captureRecorder.stop();
+    document.getElementById('s-midi-status').textContent = 'saved';
+    document.getElementById('s-midi-status').style.color = '#4a4';
+  }
+}
+
+// ========== PANIC STOP — kill all sound ==========
+function panicStop() {
+  if (!audioCtx) return;
+  // Suspend and resume to kill all scheduled oscillators
+  audioCtx.close();
+  audioCtx = null;
+  masterGain = null;
+  reverbNode = null;
+  reverbGain = null;
+  dryGain = null;
+  // Clear held notes
+  Object.keys(heldNotes).forEach(k => delete heldNotes[k]);
+  // Clear active ripples
+  activeRipples.length = 0;
+}
+
+// ========== STRIP ↔ ORIGINAL SYNC ==========
+// Map strip IDs to original IDs
+const STRIP_MAP = {
+  's-attack': 'attack', 's-adsr-decay': 'adsr-decay', 's-sustain': 'sustain', 's-release': 'release',
+  's-decay': 'decay', 's-echoes': 'echoes', 's-drift': 'drift',
+  's-gap': 'gap',
+  's-depth': 'depth', 's-bloom': 'bloom', 's-predelay': 'predelay', 's-sym': 'sym',
+  's-reverb': 'reverb', 's-width': 'width', 's-warmth': 'warmth',
+  's-loopspeed': 'loopspeed',
+};
+
+// Store default values for double-click reset
+const STRIP_DEFAULTS = {};
+Object.entries(STRIP_MAP).forEach(([stripId, origId]) => {
+  const el = document.getElementById(stripId);
+  if (el) STRIP_DEFAULTS[stripId] = el.value;
+});
+
+// Track last value for single-click recall
+const STRIP_PREV = {};
+
+// Strip slider → update original + display
+Object.entries(STRIP_MAP).forEach(([stripId, origId]) => {
+  const stripEl = document.getElementById(stripId);
+  const origEl = document.getElementById(origId);
+  if (!stripEl || !origEl) return;
+  
+  // Save previous value on mousedown
+  stripEl.addEventListener('mousedown', () => {
+    STRIP_PREV[stripId] = stripEl.value;
+  });
+  
+  stripEl.addEventListener('input', () => {
+    origEl.value = stripEl.value;
+    origEl.dispatchEvent(new Event('input'));
+    updateStripVal(stripId);
+  });
+  
+  // Double-click → reset to default
+  stripEl.addEventListener('dblclick', (e) => {
+    e.preventDefault();
+    const def = STRIP_DEFAULTS[stripId];
+    if (def !== undefined) {
+      STRIP_PREV[stripId] = stripEl.value;
+      stripEl.value = def;
+      origEl.value = def;
+      origEl.dispatchEvent(new Event('input'));
+      updateStripVal(stripId);
+    }
+  });
+});
+
+function updateStripVal(stripId) {
+  const el = document.getElementById(stripId);
+  const valEl = document.getElementById('sv-' + stripId.slice(2));
+  if (!el || !valEl) return;
+  const v = parseFloat(el.value);
+  const intParams = ['attack','adsr-decay','release','echoes','gap','predelay','loopspeed'];
+  const origId = STRIP_MAP[stripId];
+  if (['echoes','depth','gap'].includes(origId)) valEl.textContent = Math.round(v);
+  else if (['attack','adsr-decay','release','predelay'].includes(origId)) valEl.textContent = Math.round(v);
+  else if (origId === 'loopspeed') valEl.textContent = v.toFixed(1);
+  else valEl.textContent = v.toFixed(2).replace(/^0/, '');
+}
+
+function syncStripFromOriginal() {
+  Object.entries(STRIP_MAP).forEach(([stripId, origId]) => {
+    const stripEl = document.getElementById(stripId);
+    const origEl = document.getElementById(origId);
+    if (stripEl && origEl) {
+      stripEl.value = origEl.value;
+      updateStripVal(stripId);
+    }
+  });
+  // Sync harmonics toggle
+  const ht = document.getElementById('s-harmonics-toggle');
+  if (ht) {
+    ht.textContent = harmonicsActive ? 'ON' : 'OFF';
+    ht.classList.toggle('active', harmonicsActive);
+  }
+}
+
+// Strip sequence mode buttons
+document.querySelectorAll('#s-seq-presets .strip-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('#s-seq-presets .strip-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentSeqMode = btn.dataset.seq;
+    // Also sync old buttons
+    document.querySelectorAll('#seq-presets .preset-btn').forEach(b => {
+      b.classList.toggle('active', b.dataset.seq === currentSeqMode);
+    });
+  });
+});
+
+// Strip preset buttons → trigger original presets
+['pure','bell','pluck','bowl','pad','drip','cathedral','spiral','deep','fripp'].forEach(name => {
+  const stripBtn = document.getElementById('s-pre-' + name);
+  const origBtn = document.getElementById('pre-' + name);
+  if (stripBtn && origBtn) {
+    stripBtn.addEventListener('click', () => origBtn.click());
+  }
+});
+
+// Strip transport buttons → trigger originals
+const sSeqRec = document.getElementById('s-seq-record');
+const sSeqPlay = document.getElementById('s-seq-play');
+const sSeqStop = document.getElementById('s-seq-stop');
+if (sSeqRec) sSeqRec.addEventListener('click', () => document.getElementById('seq-record')?.click());
+if (sSeqPlay) sSeqPlay.addEventListener('click', () => document.getElementById('seq-play')?.click());
+if (sSeqStop) sSeqStop.addEventListener('click', () => document.getElementById('seq-stop')?.click());
+
+// Initial sync
+syncStripFromOriginal();
+
+// Also update harmonics toggle button in strip
+const origToggleHarmonics = toggleHarmonics;
+toggleHarmonics = function() {
+  origToggleHarmonics();
+  const ht = document.getElementById('s-harmonics-toggle');
+  if (ht) {
+    ht.textContent = harmonicsActive ? 'ON' : 'OFF';
+    ht.classList.toggle('active', harmonicsActive);
+  }
+  const origHt = document.getElementById('harmonics-toggle');
+  if (origHt) {
+    origHt.textContent = harmonicsActive ? 'ON' : 'OFF';
+    origHt.style.opacity = harmonicsActive ? '1' : '0.5';
+  }
+};
+
+// MIDI status sync
+const origMidiStatus = document.getElementById('midi-status');
+const stripMidiStatus = document.getElementById('s-midi-status');
+if (origMidiStatus && stripMidiStatus) {
+  new MutationObserver(() => {
+    stripMidiStatus.textContent = origMidiStatus.textContent.replace('MIDI: ', '');
+    stripMidiStatus.style.color = origMidiStatus.classList.contains('connected') ? '#4a4' : '#333';
+  }).observe(origMidiStatus, { childList: true, characterData: true, subtree: true });
+}
+</script>
+</body>
+</html>
