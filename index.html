@@ -478,6 +478,7 @@
       <div class="mini-knob"><label>Bloom</label><input type="range" id="s-bloom" min="0" max="1" step="0.01" value="0.4"><div class="mini-val" id="sv-bloom">.40</div></div>
       <div class="mini-knob"><label>Pre</label><input type="range" id="s-predelay" min="0" max="800" step="10" value="150"><div class="mini-val" id="sv-predelay">150</div></div>
       <div class="mini-knob"><label>Sym</label><input type="range" id="s-sym" min="0" max="1" step="0.01" value="0.3"><div class="mini-val" id="sv-sym">.30</div></div>
+      <div class="mini-knob"><label>Stag</label><input type="range" id="s-stagger" min="0" max="200" step="5" value="20"><div class="mini-val" id="sv-stagger">20ms</div></div>
     </div>
     <div style="display:flex; gap:3px; margin-top:3px; flex-wrap:wrap;">
       <button class="strip-btn harm-seq-btn active" onclick="setHarmonicPreset('all')" data-seq="all" style="font-size:9px; padding:1px 5px;">All</button>
@@ -706,6 +707,10 @@
         <label>Sympathetic Res. <span class="val" id="val-sym">0.3</span></label>
         <input type="range" id="sym" min="0" max="1" step="0.01" value="0.3">
       </div>
+      <div class="param">
+        <label>Stagger <span class="val" id="stagger-val">20ms</span></label>
+        <input type="range" id="stagger" min="0" max="200" step="5" value="20">
+      </div>
     </div>
 
     <!-- Space -->
@@ -930,7 +935,7 @@ function activateGodCode() {
   
   // Set strip values
   const godParams = {
-    's-depth': 12, 's-bloom': 0.8, 's-sym': 0.7, 's-predelay': 200,
+    's-depth': 12, 's-bloom': 0.8, 's-sym': 0.7, 's-predelay': 200, 's-stagger': 60,
     's-echoes': 8, 's-decay': 0.75, 's-gap': 300,
     's-reverb': 0.85, 's-width': 0.9, 's-warmth': 0.7,
     's-drift': 0.15, 's-attack': 20, 's-adsr-decay': 800, 's-sustain': 0.6, 's-release': 2000
@@ -1159,7 +1164,9 @@ function playTone(freq, time, amplitude, echoIndex, params) {
       hEnv.gain.setValueAtTime(0, now);
       // Predelay — pure tone first, THEN overtones bloom in
       const basePredelay = params.predelay || 0.15;
-      const bloomDelay = basePredelay + 0.02 * h * (1 + echoIndex * 0.1);
+      const staggerMs = getVal('stagger', 's-stagger', true) || 20;
+      const staggerSec = staggerMs / 1000;
+      const bloomDelay = basePredelay + staggerSec * h * (1 + echoIndex * 0.1);
       const bloomRise = bloomDelay + 0.05 * h; // higher harmonics take longer to swell
       hEnv.gain.setValueAtTime(0, now);
       hEnv.gain.linearRampToValueAtTime(0, now + bloomDelay); // silence during predelay
@@ -2809,7 +2816,7 @@ const STRIP_MAP = {
   's-attack': 'attack', 's-adsr-decay': 'adsr-decay', 's-sustain': 'sustain', 's-release': 'release',
   's-decay': 'decay', 's-echoes': 'echoes', 's-drift': 'drift',
   's-gap': 'gap',
-  's-depth': 'depth', 's-bloom': 'bloom', 's-predelay': 'predelay', 's-sym': 'sym',
+  's-depth': 'depth', 's-bloom': 'bloom', 's-predelay': 'predelay', 's-sym': 'sym', 's-stagger': 'stagger',
   's-reverb': 'reverb', 's-width': 'width', 's-warmth': 'warmth',
   's-loopspeed': 'loopspeed',
 };
@@ -2863,6 +2870,7 @@ function updateStripVal(stripId) {
   const intParams = ['attack','adsr-decay','release','echoes','gap','predelay','loopspeed'];
   const origId = STRIP_MAP[stripId];
   if (['echoes','depth','gap'].includes(origId)) valEl.textContent = Math.round(v);
+  else if (origId === 'stagger') valEl.textContent = Math.round(v) + 'ms';
   else if (['attack','adsr-decay','release','predelay'].includes(origId)) valEl.textContent = Math.round(v);
   else if (origId === 'loopspeed') valEl.textContent = v.toFixed(1);
   else valEl.textContent = v.toFixed(2).replace(/^0/, '');
