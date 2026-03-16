@@ -618,6 +618,14 @@
       <div id="info-echo">—</div>
       <div id="info-harmonics">—</div>
     </div>
+    <!-- Polyrhythm Visual Timeline -->
+    <div id="poly-timeline" style="display:none; position:absolute; bottom:12px; left:50%; transform:translateX(-50%); z-index:20; text-align:center; pointer-events:none;">
+      <div style="font-size:9px; color:#d4a24e; letter-spacing:1px; margin-bottom:4px; font-family:monospace;" id="poly-timeline-label">3:2</div>
+      <div id="poly-dots-a" style="display:flex; gap:6px; justify-content:center; margin-bottom:3px;"></div>
+      <div id="poly-dots-b" style="display:flex; gap:6px; justify-content:center;"></div>
+      <div style="width:100%; height:1px; background:rgba(212,162,78,0.15); margin:6px 0;"></div>
+      <div id="poly-mode-label" style="font-size:8px; color:#666; font-family:monospace;"></div>
+    </div>
     <div id="tone-counter" style="position:absolute; top:15px; right:15px; font-size:24px; color:#d4a24e; font-family:monospace; z-index:20; pointer-events:none;">T:0</div>
 
   </div>
@@ -1012,6 +1020,70 @@ function setPolyRatio(ratioStr) {
   document.querySelectorAll('[data-polyratio]').forEach(b => b.classList.toggle('active', b.dataset.polyratio === ratioStr));
   const valEl = document.getElementById('val-poly-ratio');
   if (valEl) valEl.textContent = ratioStr;
+  buildPolyTimeline();
+}
+
+// ========== POLY TIMELINE VISUALIZATION ==========
+function buildPolyTimeline() {
+  const timeline = document.getElementById('poly-timeline');
+  const dotsA = document.getElementById('poly-dots-a');
+  const dotsB = document.getElementById('poly-dots-b');
+  const label = document.getElementById('poly-timeline-label');
+  const modeLabel = document.getElementById('poly-mode-label');
+  if (!timeline || !dotsA || !dotsB) return;
+  
+  const [rA, rB] = polyEchoRatio;
+  label.textContent = `${rA}:${rB}`;
+  
+  const modeNames = {
+    'poly-own': 'OWN ECHO — each note gets both lines',
+    'poly-grid': 'SHARED GRID — notes fill the next open slot',
+    'poly-sides': 'TWO SIDES — notes alternate A↕B'
+  };
+  modeLabel.textContent = modeNames[currentNoteMode] || '';
+  
+  // Build dot rows
+  dotsA.innerHTML = '';
+  dotsB.innerHTML = '';
+  
+  // Voice A label
+  const labelA = document.createElement('span');
+  labelA.style.cssText = 'font-size:9px; color:#d4a24e; font-family:monospace; min-width:14px; opacity:0.6;';
+  labelA.textContent = 'A';
+  dotsA.appendChild(labelA);
+  
+  for (let i = 0; i < rA; i++) {
+    const dot = document.createElement('div');
+    dot.id = `poly-dot-a-${i}`;
+    dot.style.cssText = 'width:12px; height:12px; border-radius:50%; border:1.5px solid rgba(212,162,78,0.4); background:transparent; transition: background 0.15s, box-shadow 0.15s;';
+    dotsA.appendChild(dot);
+  }
+  
+  // Voice B label
+  const labelB = document.createElement('span');
+  labelB.style.cssText = 'font-size:9px; color:#8ba4d4; font-family:monospace; min-width:14px; opacity:0.6;';
+  labelB.textContent = 'B';
+  dotsB.appendChild(labelB);
+  
+  for (let i = 0; i < rB; i++) {
+    const dot = document.createElement('div');
+    dot.id = `poly-dot-b-${i}`;
+    dot.style.cssText = 'width:12px; height:12px; border-radius:50%; border:1.5px solid rgba(139,164,212,0.4); background:transparent; transition: background 0.15s, box-shadow 0.15s;';
+    dotsB.appendChild(dot);
+  }
+}
+
+function flashPolyDot(voice, index) {
+  const color = voice === 'a' ? '#d4a24e' : '#8ba4d4';
+  const glow = voice === 'a' ? 'rgba(212,162,78,0.6)' : 'rgba(139,164,212,0.6)';
+  const dot = document.getElementById(`poly-dot-${voice}-${index}`);
+  if (!dot) return;
+  dot.style.background = color;
+  dot.style.boxShadow = `0 0 8px ${glow}`;
+  setTimeout(() => {
+    dot.style.background = 'transparent';
+    dot.style.boxShadow = 'none';
+  }, 300);
 }
 
 function setNoteMode(mode) {
@@ -1039,6 +1111,13 @@ function setNoteMode(mode) {
     'poly-sides': '⚡ Notes alternate between A and B sides of the ratio',
   };
   document.getElementById('note-mode-desc').textContent = descriptions[mode] || '';
+  
+  // Show/hide poly timeline
+  const timeline = document.getElementById('poly-timeline');
+  if (timeline) {
+    timeline.style.display = mode.startsWith('poly-') ? 'block' : 'none';
+    if (mode.startsWith('poly-')) buildPolyTimeline();
+  }
 }
 
 function buildHarmonicToggles() {
@@ -1426,11 +1505,13 @@ function triggerRipple(freq, noteName, midi) {
       for (let i = 0; i < ratioA; i++) {
         const amp = 0.3 * Math.pow(params.decay, i);
         playTone(freq, now + hitsA[i], amp, i, params);
+        ((idx, delay) => setTimeout(() => flashPolyDot('a', idx), delay * 1000))(i, hitsA[i]);
       }
       // Voice B: same note, offset timing on ratioB grid, slightly quieter
       for (let i = 0; i < ratioB; i++) {
         const amp = 0.22 * Math.pow(params.decay, i);
         playTone(freq, now + hitsB[i], amp, i, params);
+        ((idx, delay) => setTimeout(() => flashPolyDot('b', idx), delay * 1000))(i, hitsB[i]);
       }
       
     } else if (currentNoteMode === 'poly-grid') {
@@ -1455,6 +1536,7 @@ function triggerRipple(freq, noteName, midi) {
       
       // Play the note at the grid point, then echo through remaining slots
       const remainingHits = nextSlot.voice === 'A' ? hitsA : hitsB;
+      const voiceLetter = nextSlot.voice === 'A' ? 'a' : 'b';
       const startIdx = remainingHits.indexOf(nextSlot.t);
       for (let i = 0; i < remainingHits.length; i++) {
         const idx = (startIdx + i) % remainingHits.length;
@@ -1462,6 +1544,7 @@ function triggerRipple(freq, noteName, midi) {
         if (t < 0) t += cycleSec;
         const amp = 0.3 * Math.pow(params.decay, i);
         playTone(freq, now + delay + t, amp, i, params);
+        ((v, dotIdx, d) => setTimeout(() => flashPolyDot(v, dotIdx), (delay + d) * 1000))(voiceLetter, idx, t);
       }
       
     } else if (currentNoteMode === 'poly-sides') {
@@ -1472,9 +1555,11 @@ function triggerRipple(freq, noteName, midi) {
       polySideCounter++;
       
       // Echo the note through the chosen side's grid
+      const voiceLtr = isA ? 'a' : 'b';
       for (let i = 0; i < hits.length; i++) {
         const amp = 0.3 * Math.pow(params.decay, i);
         playTone(freq, now + hits[i], amp, i, params);
+        ((v, idx, d) => setTimeout(() => flashPolyDot(v, idx), d * 1000))(voiceLtr, i, hits[i]);
       }
       
       noteName = noteName + ` [${label}${ratioA}:${ratioB}]`;
