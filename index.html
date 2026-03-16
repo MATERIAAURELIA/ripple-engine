@@ -509,6 +509,15 @@
     <div class="strip-btns">
       <button class="strip-btn active" data-notemode="ripple" onclick="setNoteMode('ripple'); document.querySelectorAll('[data-notemode]').forEach(b=>b.classList.toggle('active',b.dataset.notemode==='ripple'))">🪼 Ripple</button>
       <button class="strip-btn" data-notemode="harmonic-bloom" onclick="setNoteMode('harmonic-bloom'); document.querySelectorAll('[data-notemode]').forEach(b=>b.classList.toggle('active',b.dataset.notemode==='harmonic-bloom'))">🌸 Bloom</button>
+      <button class="strip-btn" data-notemode="poly-own" onclick="setNoteMode('poly-own'); document.querySelectorAll('[data-notemode]').forEach(b=>b.classList.toggle('active',b.dataset.notemode==='poly-own'))">🥁 Poly1</button>
+      <button class="strip-btn" data-notemode="poly-grid" onclick="setNoteMode('poly-grid'); document.querySelectorAll('[data-notemode]').forEach(b=>b.classList.toggle('active',b.dataset.notemode==='poly-grid'))">🔄 Poly2</button>
+      <button class="strip-btn" data-notemode="poly-sides" onclick="setNoteMode('poly-sides'); document.querySelectorAll('[data-notemode]').forEach(b=>b.classList.toggle('active',b.dataset.notemode==='poly-sides'))">⚡ Poly3</button>
+    </div>
+    <div class="strip-btns" id="s-poly-ratio" style="margin-top:2px; display:none;">
+      <button class="strip-btn active" data-polyratio="3:2" onclick="setPolyRatio('3:2')">3:2</button>
+      <button class="strip-btn" data-polyratio="4:3" onclick="setPolyRatio('4:3')">4:3</button>
+      <button class="strip-btn" data-polyratio="5:3" onclick="setPolyRatio('5:3')">5:3</button>
+      <button class="strip-btn" data-polyratio="7:4" onclick="setPolyRatio('7:4')">7:4</button>
     </div>
     <div class="strip-btns" style="margin-top:2px;">
       <button class="strip-btn active" data-tuning="et440" onclick="setTuning('et440'); document.querySelectorAll('[data-tuning]').forEach(b=>b.classList.toggle('active',b.dataset.tuning==='et440'))">440</button>
@@ -699,8 +708,27 @@
         <div class="presets" id="note-mode-presets">
           <button class="preset-btn active" data-notemode="ripple" onclick="setNoteMode('ripple')">🪼 Ripple</button>
           <button class="preset-btn" data-notemode="harmonic-bloom" onclick="setNoteMode('harmonic-bloom')">🌸 Harmonic Bloom</button>
+          <button class="preset-btn" data-notemode="poly-own" onclick="setNoteMode('poly-own')">🥁 Poly: Own Echo</button>
+          <button class="preset-btn" data-notemode="poly-grid" onclick="setNoteMode('poly-grid')">🔄 Poly: Shared Grid</button>
+          <button class="preset-btn" data-notemode="poly-sides" onclick="setNoteMode('poly-sides')">⚡ Poly: Two Sides</button>
         </div>
         <label style="margin-top:4px; font-size:0.7em; opacity:0.5" id="note-mode-desc">Same note echoes in Fibonacci timing</label>
+        <div id="poly-echo-controls" style="display:none; margin-top:8px;">
+          <div class="param">
+            <label>Poly Ratio <span class="val" id="val-poly-ratio">3:2</span></label>
+            <div class="presets" style="margin-top:3px;">
+              <button class="preset-btn active" data-polyratio="3:2" onclick="setPolyRatio('3:2')">3:2</button>
+              <button class="preset-btn" data-polyratio="4:3" onclick="setPolyRatio('4:3')">4:3</button>
+              <button class="preset-btn" data-polyratio="5:3" onclick="setPolyRatio('5:3')">5:3</button>
+              <button class="preset-btn" data-polyratio="5:2" onclick="setPolyRatio('5:2')">5:2</button>
+              <button class="preset-btn" data-polyratio="7:4" onclick="setPolyRatio('7:4')">7:4</button>
+            </div>
+          </div>
+          <div class="param">
+            <label>Poly Cycle <span class="val" id="val-poly-cycle">2.0</span>s</label>
+            <input type="range" id="poly-cycle" min="0.5" max="6" step="0.1" value="2.0" oninput="document.getElementById('val-poly-cycle').textContent=parseFloat(this.value).toFixed(1)">
+          </div>
+        </div>
       </div>
       <div id="harmonic-bloom-controls" style="display:none;">
         <div class="param">
@@ -972,14 +1000,45 @@ function toggleHarmonics() {
   btn.style.opacity = harmonicsActive ? '1' : '0.5';
 }
 
+// ========== POLYRHYTHM ECHO STATE ==========
+let polyEchoRatio = [3, 2];
+let polyGridClock = null; // shared grid for poly-grid mode
+let polyGridStartTime = 0;
+let polySideCounter = 0; // alternates A/B for poly-sides mode
+
+function setPolyRatio(ratioStr) {
+  const parts = ratioStr.split(':').map(Number);
+  polyEchoRatio = parts;
+  document.querySelectorAll('[data-polyratio]').forEach(b => b.classList.toggle('active', b.dataset.polyratio === ratioStr));
+  const valEl = document.getElementById('val-poly-ratio');
+  if (valEl) valEl.textContent = ratioStr;
+}
+
 function setNoteMode(mode) {
   currentNoteMode = mode;
   document.querySelectorAll('#note-mode-presets .preset-btn').forEach(b => b.classList.remove('active'));
-  document.querySelector(`[data-notemode="${mode}"]`).classList.add('active');
+  const activeBtn = document.querySelector(`[data-notemode="${mode}"]`);
+  if (activeBtn) activeBtn.classList.add('active');
   document.getElementById('harmonic-bloom-controls').style.display = mode === 'harmonic-bloom' ? 'block' : 'none';
-  document.getElementById('note-mode-desc').textContent = mode === 'ripple' 
-    ? 'Same note echoes in Fibonacci timing' 
-    : 'Overtone cascade blooms in Fibonacci timing';
+  const polyControls = document.getElementById('poly-echo-controls');
+  if (polyControls) polyControls.style.display = mode.startsWith('poly-') ? 'block' : 'none';
+  const sPolyRatio = document.getElementById('s-poly-ratio');
+  if (sPolyRatio) sPolyRatio.style.display = mode.startsWith('poly-') ? 'flex' : 'none';
+  
+  // Reset poly state
+  if (mode === 'poly-grid') {
+    polyGridStartTime = audioCtx ? audioCtx.currentTime : 0;
+  }
+  polySideCounter = 0;
+  
+  const descriptions = {
+    'ripple': 'Same note echoes in Fibonacci timing',
+    'harmonic-bloom': 'Overtone cascade blooms in Fibonacci timing',
+    'poly-own': '🥁 Each note spawns its own polyrhythm — independent echoes',
+    'poly-grid': '🔄 Notes slot into one shared rhythm grid — drum circle mode',
+    'poly-sides': '⚡ Notes alternate between A and B sides of the ratio',
+  };
+  document.getElementById('note-mode-desc').textContent = descriptions[mode] || '';
 }
 
 function buildHarmonicToggles() {
@@ -1350,6 +1409,96 @@ function triggerRipple(freq, noteName, midi) {
       activeHarmonics,
     });
     
+  } else if (currentNoteMode.startsWith('poly-')) {
+    // === POLYRHYTHM ECHO MODES ===
+    const [ratioA, ratioB] = polyEchoRatio;
+    const cycleMs = parseFloat(document.getElementById('poly-cycle')?.value || 2.0);
+    const cycleSec = cycleMs;
+    
+    // Calculate hit times for both sides of the polyrhythm
+    const hitsA = [], hitsB = [];
+    for (let i = 0; i < ratioA; i++) hitsA.push((i / ratioA) * cycleSec);
+    for (let i = 0; i < ratioB; i++) hitsB.push((i / ratioB) * cycleSec);
+    
+    if (currentNoteMode === 'poly-own') {
+      // MODE 1: Each note spawns its own complete polyrhythm
+      // Voice A: the played note echoes on ratioA grid
+      for (let i = 0; i < ratioA; i++) {
+        const amp = 0.3 * Math.pow(params.decay, i);
+        playTone(freq, now + hitsA[i], amp, i, params);
+      }
+      // Voice B: same note, offset timing on ratioB grid, slightly quieter
+      for (let i = 0; i < ratioB; i++) {
+        const amp = 0.22 * Math.pow(params.decay, i);
+        playTone(freq, now + hitsB[i], amp, i, params);
+      }
+      
+    } else if (currentNoteMode === 'poly-grid') {
+      // MODE 2: Notes slot into a shared rhythm grid
+      // The grid runs continuously from polyGridStartTime
+      const elapsed = now - polyGridStartTime;
+      const cyclePos = elapsed % cycleSec;
+      
+      // Find next available slot on BOTH grids combined
+      const allHits = [
+        ...hitsA.map(t => ({ t, voice: 'A' })),
+        ...hitsB.map(t => ({ t, voice: 'B' }))
+      ].sort((a, b) => a.t - b.t);
+      
+      // Find next slot after current cycle position
+      let nextSlot = allHits.find(h => h.t > cyclePos);
+      if (!nextSlot) nextSlot = allHits[0]; // wrap to start of next cycle
+      
+      const delay = nextSlot.t > cyclePos 
+        ? nextSlot.t - cyclePos 
+        : (cycleSec - cyclePos) + nextSlot.t;
+      
+      // Play the note at the grid point, then echo through remaining slots
+      const remainingHits = nextSlot.voice === 'A' ? hitsA : hitsB;
+      const startIdx = remainingHits.indexOf(nextSlot.t);
+      for (let i = 0; i < remainingHits.length; i++) {
+        const idx = (startIdx + i) % remainingHits.length;
+        let t = remainingHits[idx] - nextSlot.t;
+        if (t < 0) t += cycleSec;
+        const amp = 0.3 * Math.pow(params.decay, i);
+        playTone(freq, now + delay + t, amp, i, params);
+      }
+      
+    } else if (currentNoteMode === 'poly-sides') {
+      // MODE 3: Notes alternate between A and B sides
+      const isA = (polySideCounter % 2 === 0);
+      const hits = isA ? hitsA : hitsB;
+      const label = isA ? 'A' : 'B';
+      polySideCounter++;
+      
+      // Echo the note through the chosen side's grid
+      for (let i = 0; i < hits.length; i++) {
+        const amp = 0.3 * Math.pow(params.decay, i);
+        playTone(freq, now + hits[i], amp, i, params);
+      }
+      
+      noteName = noteName + ` [${label}${ratioA}:${ratioB}]`;
+    }
+    
+    // Update bloom grid
+    lastRippleTime = performance.now() + quantizeDelay * 1000;
+    rebuildBloomGrid(lastRippleTime, params);
+    
+    // Visual ripple for poly modes
+    const vizStart = performance.now() + quantizeDelay * 1000;
+    const _pos3 = _vizNotePosition(freq, midi);
+    const totalEchoes = ratioA + ratioB;
+    activeRipples.push({
+      x: _pos3.x,
+      y: _pos3.y,
+      freq,
+      noteName: noteName + ` ${ratioA}:${ratioB}`,
+      startTime: vizStart,
+      params: { ...params },
+      gaps: Array(totalEchoes).fill(cycleSec / totalEchoes),
+      echoes: totalEchoes - 1,
+    });
+    
   } else {
     // === RIPPLE MODE (original) ===
     const gaps = getGapSequence(params.gap / 1000, params.echoes, params.seq);
@@ -1394,6 +1543,12 @@ function triggerRipple(freq, noteName, midi) {
     document.getElementById('info-echo').textContent = `🌸 Bloom: ${active} harmonics in ${currentSeqMode} time`;
     document.getElementById('info-harmonics').className = 'active';
     document.getElementById('info-harmonics').textContent = `Series: ${harmonicToggles.slice(0, bloomCount).map((on, i) => on ? `H${i+1}` : '·').join(' ')}`;
+  } else if (currentNoteMode.startsWith('poly-')) {
+    const modeNames = { 'poly-own': '🥁 Own Echo', 'poly-grid': '🔄 Shared Grid', 'poly-sides': '⚡ Two Sides' };
+    document.getElementById('info-echo').textContent = `${modeNames[currentNoteMode]} | ${polyEchoRatio[0]}:${polyEchoRatio[1]}`;
+    document.getElementById('info-harmonics').className = 'active';
+    const cycleSec = parseFloat(document.getElementById('poly-cycle')?.value || 2.0);
+    document.getElementById('info-harmonics').textContent = `Cycle: ${cycleSec.toFixed(1)}s | ${polyEchoRatio[0]}+${polyEchoRatio[1]} = ${polyEchoRatio[0]+polyEchoRatio[1]} hits`;
   } else {
     document.getElementById('info-echo').textContent = `Echoes: ${params.echoes} @ φ=${params.decay.toFixed(3)}`;
     document.getElementById('info-harmonics').className = 'active';
