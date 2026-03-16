@@ -1491,8 +1491,11 @@ function triggerRipple(freq, noteName, midi) {
   } else if (currentNoteMode.startsWith('poly-')) {
     // === POLYRHYTHM ECHO MODES ===
     const [ratioA, ratioB] = polyEchoRatio;
-    const cycleMs = parseFloat(document.getElementById('poly-cycle')?.value || 2.0);
-    const cycleSec = cycleMs;
+    // Gap slider = base beat interval in ms
+    // Full cycle = Gap × LCM-like factor so both voices complete
+    // e.g. Gap=500ms, 3:2 → cycle = Gap × max(ratioA,ratioB) 
+    const beatSec = params.gap / 1000;
+    const cycleSec = beatSec * Math.max(ratioA, ratioB);
     
     // Calculate hit times for both sides of the polyrhythm
     const hitsA = [], hitsB = [];
@@ -1632,8 +1635,9 @@ function triggerRipple(freq, noteName, midi) {
     const modeNames = { 'poly-own': '🥁 Own Echo', 'poly-grid': '🔄 Shared Grid', 'poly-sides': '⚡ Two Sides' };
     document.getElementById('info-echo').textContent = `${modeNames[currentNoteMode]} | ${polyEchoRatio[0]}:${polyEchoRatio[1]}`;
     document.getElementById('info-harmonics').className = 'active';
-    const cycleSec = parseFloat(document.getElementById('poly-cycle')?.value || 2.0);
-    document.getElementById('info-harmonics').textContent = `Cycle: ${cycleSec.toFixed(1)}s | ${polyEchoRatio[0]}+${polyEchoRatio[1]} = ${polyEchoRatio[0]+polyEchoRatio[1]} hits`;
+    const _beatSec = params.gap / 1000;
+    const _cycleSec = _beatSec * Math.max(polyEchoRatio[0], polyEchoRatio[1]);
+    document.getElementById('info-harmonics').textContent = `Beat: ${(_beatSec*1000).toFixed(0)}ms | Cycle: ${_cycleSec.toFixed(1)}s | ${polyEchoRatio[0]}+${polyEchoRatio[1]} = ${polyEchoRatio[0]+polyEchoRatio[1]} hits`;
   } else {
     document.getElementById('info-echo').textContent = `Echoes: ${params.echoes} @ φ=${params.decay.toFixed(3)}`;
     document.getElementById('info-harmonics').className = 'active';
