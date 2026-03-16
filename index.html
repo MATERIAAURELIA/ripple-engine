@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Ripple Engine — Sacred Geometry Delay</title>
+<script src="../../sync.js"></script>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   
@@ -535,6 +536,18 @@
     </div>
   </div>
 
+  <!-- USER PRESETS -->
+  <div class="strip-section">
+    <h4>💾 Saved</h4>
+    <div class="strip-btns">
+      <button class="strip-btn" onclick="saveUserPreset()" title="Save current settings">💾 Save</button>
+      <button class="strip-btn" onclick="deleteUserPreset()" title="Delete selected" style="color:#c44;">🗑</button>
+    </div>
+    <select id="user-preset-list" style="background:#0d0d15;color:#d4a24e;border:1px solid #333;padding:2px;font-size:9px;width:100%;margin-top:3px;" onchange="loadUserPreset(this.value)">
+      <option value="">— select —</option>
+    </select>
+  </div>
+
   <!-- TRANSPORT -->
   <div class="strip-section">
     <h4>Loop</h4>
@@ -545,6 +558,33 @@
     </div>
     <div class="strip-knobs" style="margin-top:2px;">
       <div class="mini-knob"><label>Speed</label><input type="range" id="s-loopspeed" min="0.25" max="2" step="0.05" value="1"><div class="mini-val" id="sv-loopspeed">1.0</div></div>
+    </div>
+  </div>
+
+  <!-- Generative -->
+  <div class="strip-section">
+    <h4>🌊 Gen</h4>
+    <div class="strip-btns">
+      <button class="strip-btn" id="s-gen-start" onclick="toggleGenerative()">▶</button>
+    </div>
+    <div class="strip-knobs" style="margin-top:2px;">
+      <div class="mini-knob"><label>Root</label>
+        <select id="s-gen-root" style="background:#0d0d15;color:#d4a24e;border:1px solid #333;padding:1px 2px;font-size:9px;width:44px;" onchange="document.getElementById('gen-root').value=this.value">
+          <option value="48">C3</option><option value="55">G3</option><option value="60" selected>C4</option><option value="67">G4</option>
+        </select>
+      </div>
+      <div class="mini-knob"><label>Dense</label><input type="range" id="s-gen-density" min="0.05" max="1" step="0.05" value="0.3" oninput="document.getElementById('gen-density').value=this.value" style="width:44px;"><div class="mini-val" id="sv-gendensity">0.3</div></div>
+    </div>
+    <div class="strip-btns" style="margin-top:2px;">
+      <button class="strip-btn active" data-gentiming="fibonacci" onclick="genTiming='fibonacci';this.parentElement.querySelectorAll('.strip-btn').forEach(b=>b.classList.remove('active'));this.classList.add('active')">Fib</button>
+      <button class="strip-btn" data-gentiming="golden" onclick="genTiming='golden';this.parentElement.querySelectorAll('.strip-btn').forEach(b=>b.classList.remove('active'));this.classList.add('active')">φ</button>
+      <button class="strip-btn" data-gentiming="linear" onclick="genTiming='linear';this.parentElement.querySelectorAll('.strip-btn').forEach(b=>b.classList.remove('active'));this.classList.add('active')">Lin</button>
+    </div>
+    <div class="strip-btns" style="margin-top:2px;">
+      <button class="strip-btn" data-gentiming="poly-3:2" onclick="genTiming='poly-3:2';this.closest('.strip-section').querySelectorAll('[data-gentiming]').forEach(b=>b.classList.remove('active'));this.classList.add('active')">3:2</button>
+      <button class="strip-btn" data-gentiming="poly-4:3" onclick="genTiming='poly-4:3';this.closest('.strip-section').querySelectorAll('[data-gentiming]').forEach(b=>b.classList.remove('active'));this.classList.add('active')">4:3</button>
+      <button class="strip-btn" data-gentiming="poly-5:3" onclick="genTiming='poly-5:3';this.closest('.strip-section').querySelectorAll('[data-gentiming]').forEach(b=>b.classList.remove('active'));this.classList.add('active')">5:3</button>
+      <button class="strip-btn" data-gentiming="poly-7:4" onclick="genTiming='poly-7:4';this.closest('.strip-section').querySelectorAll('[data-gentiming]').forEach(b=>b.classList.remove('active'));this.classList.add('active')">7:4</button>
     </div>
   </div>
 
@@ -763,6 +803,46 @@
       </div>
       <div id="fan-info" style="font-size:10px; color:#555; margin-top:4px;">
         Choose a mode to auto-evolve parameters while the loop plays.
+      </div>
+    </div>
+
+    <!-- Generative -->
+    <div class="param-group">
+      <h3>🌊 Generative</h3>
+      <div id="gen-controls" style="display:flex; gap:6px; margin-bottom:8px;">
+        <button class="preset-btn" id="gen-start" style="flex:1; padding:6px;" onclick="toggleGenerative()">▶ Start</button>
+      </div>
+      <div class="param">
+        <label>Root Note <span class="val" id="val-genroot">C3</span></label>
+        <select id="gen-root" style="background:#1a1a2a;color:#d4a24e;border:1px solid #333;padding:3px;font-size:11px;width:100%;" onchange="document.getElementById('val-genroot').textContent=this.value">
+          <option value="48">C3</option><option value="50">D3</option><option value="52">E3</option>
+          <option value="53">F3</option><option value="55">G3</option><option value="57">A3</option>
+          <option value="60" selected>C4</option><option value="62">D4</option><option value="64">E4</option>
+          <option value="65">F4</option><option value="67">G4</option><option value="69">A4</option>
+        </select>
+      </div>
+      <div class="param">
+        <label>Density <span class="val" id="val-gendensity">0.30</span></label>
+        <input type="range" id="gen-density" min="0.05" max="1" step="0.05" value="0.3" oninput="document.getElementById('val-gendensity').textContent=parseFloat(this.value).toFixed(2)">
+      </div>
+      <div class="param">
+        <label>Timing <span class="val" id="val-gentiming">fibonacci</span></label>
+        <div class="presets" style="margin-top:2px;">
+          <button class="preset-btn active" onclick="genTiming='fibonacci';document.getElementById('val-gentiming').textContent='fibonacci';this.parentElement.querySelectorAll('.preset-btn').forEach(b=>b.classList.remove('active'));this.classList.add('active')">Fib</button>
+          <button class="preset-btn" onclick="genTiming='golden';document.getElementById('val-gentiming').textContent='golden';this.parentElement.querySelectorAll('.preset-btn').forEach(b=>b.classList.remove('active'));this.classList.add('active')">Gold</button>
+          <button class="preset-btn" onclick="genTiming='linear';document.getElementById('val-gentiming').textContent='linear';this.parentElement.querySelectorAll('.preset-btn').forEach(b=>b.classList.remove('active'));this.classList.add('active')">Lin</button>
+          <button class="preset-btn" onclick="genTiming='poly-3:2';document.getElementById('val-gentiming').textContent='poly 3:2';this.parentElement.querySelectorAll('.preset-btn').forEach(b=>b.classList.remove('active'));this.classList.add('active')">3:2</button>
+          <button class="preset-btn" onclick="genTiming='poly-4:3';document.getElementById('val-gentiming').textContent='poly 4:3';this.parentElement.querySelectorAll('.preset-btn').forEach(b=>b.classList.remove('active'));this.classList.add('active')">4:3</button>
+          <button class="preset-btn" onclick="genTiming='poly-5:3';document.getElementById('val-gentiming').textContent='poly 5:3';this.parentElement.querySelectorAll('.preset-btn').forEach(b=>b.classList.remove('active'));this.classList.add('active')">5:3</button>
+          <button class="preset-btn" onclick="genTiming='poly-7:4';document.getElementById('val-gentiming').textContent='poly 7:4';this.parentElement.querySelectorAll('.preset-btn').forEach(b=>b.classList.remove('active'));this.classList.add('active')">7:4</button>
+        </div>
+      </div>
+      <div class="param">
+        <label>Spaciousness <span class="val" id="val-genspace">0.50</span></label>
+        <input type="range" id="gen-space" min="0" max="1" step="0.01" value="0.5" oninput="applySpaciousness(parseFloat(this.value))">
+      </div>
+      <div id="gen-info" style="font-size:10px; color:#555; margin-top:4px;">
+        Sporadic consonant tones — octaves, 2nds, 3rds, 4ths, 5ths — in sacred time.
       </div>
     </div>
 
@@ -1201,7 +1281,7 @@ function playTone(freq, time, amplitude, echoIndex, params) {
 // ========== RIPPLE ENGINE ==========
 const activeRipples = [];
 
-function triggerRipple(freq, noteName) {
+function triggerRipple(freq, noteName, midi) {
   initAudio();
   
   const params = getParams();
@@ -1256,9 +1336,10 @@ function triggerRipple(freq, noteName) {
     
     // Visual ripple
     const vizStart = performance.now() + quantizeDelay * 1000;
+    const _pos1 = _vizNotePosition(freq, midi);
     activeRipples.push({
-      x: Math.random() * 0.6 + 0.2,
-      y: Math.random() * 0.5 + 0.25,
+      x: _pos1.x,
+      y: _pos1.y,
       freq,
       noteName: noteName + ' ⟿ H' + activeHarmonics.length,
       startTime: vizStart,
@@ -1290,9 +1371,10 @@ function triggerRipple(freq, noteName) {
     
     // Create visual ripple
     const vizStart = performance.now() + quantizeDelay * 1000;
+    const _pos2 = _vizNotePosition(freq, midi);
     activeRipples.push({
-      x: Math.random() * 0.6 + 0.2,
-      y: Math.random() * 0.5 + 0.25,
+      x: _pos2.x,
+      y: _pos2.y,
       freq,
       noteName,
       startTime: vizStart,
@@ -1319,183 +1401,390 @@ function triggerRipple(freq, noteName) {
   }
 }
 
+// ========== GENERATIVE STATE (declared early for strip button access) ==========
+var genActive = false;
+var genTimer = null;
+var genTiming = 'fibonacci';
+var genStep = 0;
+var polyTimerB = null; // second voice for polyrhythm
+var polyStepA = 0;
+var polyStepB = 0;
+var GEN_FIB = [1, 1, 2, 3, 5, 8, 13, 21, 34];
+var GEN_PHI = 1.618033988749895;
+var GEN_INTERVALS = [0, 2, 4, 5, 7, 12, -12, 14, 16, 19, 24];
+
 // ========== VISUALIZATION ==========
 const canvas = document.getElementById('vizCanvas');
 const ctx = canvas.getContext('2d');
+
+// ——— Visualization helpers & state (declared before resizeCanvas) ———
+var _vizStarField = null;
+var _vizParticles = [];
+var _vizLastFrame = performance.now();
+var _vizEmittedRipples = new WeakSet();
+var _vizNoteCounter = 0;
+
+// Map notes to positions using sacred geometry
+// Each note gets a position on a golden spiral from center
+// Interval relationships determine angular position (circle of fifths logic)
+function _vizNotePosition(freq, midi) {
+  // Semitone determines angle (circle of fifths: C=0, G=1, D=2, A=3...)
+  // This creates musically meaningful spatial relationships
+  const FIFTHS_ORDER = [0, 7, 2, 9, 4, 11, 6, 1, 8, 3, 10, 5]; // semitones in circle of fifths
+  const semitone = (midi || 60) % 12;
+  const fifthsIdx = FIFTHS_ORDER.indexOf(semitone);
+  const angle = (fifthsIdx / 12) * Math.PI * 2 - Math.PI / 2; // start from top
+
+  // Octave determines distance from center (higher = further)
+  const octave = Math.floor((midi || 60) / 12) - 4; // C4 = center
+  const baseRadius = 0.05 + Math.abs(octave) * 0.08;
+  
+  // Golden ratio spiral offset for each successive note
+  _vizNoteCounter++;
+  const spiralOffset = (_vizNoteCounter * PHI * 0.02) % 0.15;
+  
+  const radius = Math.min(0.35, baseRadius + spiralOffset);
+  
+  return {
+    x: 0.5 + Math.cos(angle) * radius,
+    y: 0.5 + Math.sin(angle) * radius
+  };
+}
 
 function resizeCanvas() {
   canvas.width = canvas.parentElement.clientWidth * window.devicePixelRatio;
   canvas.height = canvas.parentElement.clientHeight * window.devicePixelRatio;
   ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+  _vizStarField = null; // regenerate on resize
 }
 resizeCanvas();
 window.addEventListener('resize', resizeCanvas);
 
+// Particle system
+function _vizEmitParticles(cx, cy, count) {
+  for (let i = 0; i < count; i++) {
+    const angle = Math.random() * Math.PI * 2;
+    const speed = 12 + Math.random() * 30;
+    const spiralBias = (Math.random() - 0.5) * 0.6; // gentle curve
+    _vizParticles.push({
+      x: cx, y: cy, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed,
+      life: 1, decay: 0.006 + Math.random() * 0.008,
+      size: 1 + Math.random() * 2, spiralBias, born: performance.now()
+    });
+  }
+}
+function _vizUpdateParticles(ctx, dt) {
+  for (let i = _vizParticles.length - 1; i >= 0; i--) {
+    const p = _vizParticles[i];
+    p.life -= p.decay;
+    if (p.life <= 0) { _vizParticles.splice(i, 1); continue; }
+    // Golden spiral drift: rotate velocity slightly each frame
+    const cos = Math.cos(p.spiralBias * dt);
+    const sin = Math.sin(p.spiralBias * dt);
+    const nvx = p.vx * cos - p.vy * sin;
+    const nvy = p.vx * sin + p.vy * cos;
+    p.vx = nvx * 0.995; p.vy = nvy * 0.995; // gentle drag
+    p.x += p.vx * dt; p.y += p.vy * dt;
+    const a = p.life * p.life; // quadratic fade — tail lingers softly
+    const glow = p.size * (1 + (1 - p.life) * 0.5);
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, glow, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(232, 192, 112, ${a * 0.7})`;
+    ctx.fill();
+    // tiny bright core
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.size * 0.4, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(255, 235, 200, ${a * 0.9})`;
+    ctx.fill();
+  }
+}
+
+// Star field (generated once, responsive to resize)
+// (_vizStarField declared above resizeCanvas)
+function _vizGetStars(w, h) {
+  if (_vizStarField && _vizStarField.w === w && _vizStarField.h === h) return _vizStarField.stars;
+  const count = Math.floor(w * h / 3000); // density
+  const stars = [];
+  for (let i = 0; i < count; i++) {
+    stars.push({
+      x: Math.random() * w, y: Math.random() * h,
+      r: 0.3 + Math.random() * 1.2,
+      brightness: 0.02 + Math.random() * 0.06,
+      twinkleSpeed: 0.5 + Math.random() * 2,
+      twinklePhase: Math.random() * Math.PI * 2
+    });
+  }
+  _vizStarField = { w, h, stars };
+  return stars;
+}
+
+// Sacred geometry: draw a regular polygon
+function _vizPolygon(ctx, cx, cy, radius, sides, rotation, alpha, hue) {
+  if (alpha < 0.005 || radius < 1) return;
+  ctx.beginPath();
+  for (let i = 0; i <= sides; i++) {
+    const a = rotation + (i / sides) * Math.PI * 2;
+    const px = cx + Math.cos(a) * radius;
+    const py = cy + Math.sin(a) * radius;
+    i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+  }
+  ctx.closePath();
+  ctx.strokeStyle = `hsla(${hue}, 70%, 55%, ${alpha})`;
+  ctx.lineWidth = 1;
+  ctx.stroke();
+}
+
+// Draw a vesica piscis where two circles overlap
+function _vizVesica(ctx, x1, y1, r1, x2, y2, r2, alpha) {
+  const dx = x2 - x1, dy = y2 - y1;
+  const dist = Math.sqrt(dx * dx + dy * dy);
+  if (dist > r1 + r2 || dist < Math.abs(r1 - r2) || dist < 1) return; // no overlap
+  if (alpha < 0.005) return;
+  // Intersection points
+  const a = (r1 * r1 - r2 * r2 + dist * dist) / (2 * dist);
+  const hSq = r1 * r1 - a * a;
+  if (hSq < 0) return;
+  const hh = Math.sqrt(hSq);
+  const mx = x1 + a * dx / dist, my = y1 + a * dy / dist;
+  const ix1 = mx + hh * (-dy / dist), iy1 = my + hh * (dx / dist);
+  const ix2 = mx - hh * (-dy / dist), iy2 = my - hh * (dx / dist);
+  // Draw the two arcs that form the vesica
+  const angle1a = Math.atan2(iy1 - y1, ix1 - x1);
+  const angle1b = Math.atan2(iy2 - y1, ix2 - x1);
+  const angle2a = Math.atan2(iy1 - y2, ix1 - x2);
+  const angle2b = Math.atan2(iy2 - y2, ix2 - x2);
+  ctx.beginPath();
+  ctx.arc(x1, y1, r1, angle1a, angle1b);
+  ctx.arc(x2, y2, r2, angle2b, angle2a);
+  ctx.closePath();
+  ctx.fillStyle = `rgba(200, 150, 80, ${alpha * 0.08})`;
+  ctx.fill();
+  ctx.strokeStyle = `rgba(212, 162, 78, ${alpha * 0.15})`;
+  ctx.lineWidth = 0.5;
+  ctx.stroke();
+}
+
+// Flower of Life: 7-circle pattern
+function _vizFlowerOfLife(ctx, cx, cy, radius, alpha, time) {
+  if (alpha < 0.003) return;
+  const breathe = 1 + Math.sin(time * 0.4) * 0.03; // gentle pulse
+  const r = radius * breathe;
+  ctx.lineWidth = 0.5;
+  ctx.strokeStyle = `rgba(212, 162, 78, ${alpha})`;
+  // Center circle
+  ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.stroke();
+  // 6 surrounding circles
+  for (let i = 0; i < 6; i++) {
+    const a = (i / 6) * Math.PI * 2 + time * 0.02;
+    ctx.beginPath();
+    ctx.arc(cx + Math.cos(a) * r, cy + Math.sin(a) * r, r, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+}
+
+// Harmonic relationship (interval consonance 0-1)
+function _vizConsonance(freq1, freq2) {
+  const ratio = freq1 > freq2 ? freq1 / freq2 : freq2 / freq1;
+  // Simple consonance: how close to simple ratio
+  const consonantRatios = [1, 2, 1.5, 4/3, 5/4, 5/3, 3/2, 6/5, 8/5];
+  let best = 1;
+  for (const cr of consonantRatios) {
+    const diff = Math.abs(ratio - cr);
+    if (diff < best) best = diff;
+    // Check octave equivalents
+    const diff2 = Math.abs(ratio / 2 - cr);
+    if (diff2 < best) best = diff2;
+  }
+  return Math.max(0, 1 - best * 3);
+}
+
+// Track which ripples have already emitted particles
+// (_vizEmittedRipples and _vizLastFrame declared above resizeCanvas)
+
 function drawFrame() {
   const w = canvas.width / window.devicePixelRatio;
   const h = canvas.height / window.devicePixelRatio;
-  
-  // Fade trail
-  ctx.fillStyle = 'rgba(10, 10, 15, 0.08)';
-  ctx.fillRect(0, 0, w, h);
-  
   const now = performance.now();
-  
+  const dt = Math.min((now - _vizLastFrame) / 1000, 0.05);
+  _vizLastFrame = now;
+  const timeSec = now / 1000;
+  const cx = w / 2, cy = h / 2;
+
+  // Clear — slight trail for afterglow
+  ctx.fillStyle = 'rgba(10, 10, 15, 0.07)';
+  ctx.fillRect(0, 0, w, h);
+
+  // Clean up expired ripples
   for (let r = activeRipples.length - 1; r >= 0; r--) {
     const ripple = activeRipples[r];
     const elapsed = (now - ripple.startTime) / 1000;
-    
-    // Calculate total duration
     let totalDur = 0;
     for (let i = 0; i < ripple.gaps.length; i++) totalDur += ripple.gaps[i];
-    totalDur += 3; // tail
-    
-    if (elapsed > totalDur + 2) {
-      activeRipples.splice(r, 1);
-      continue;
-    }
-    
-    const cx = ripple.x * w;
-    const cy = ripple.y * h;
-    
-    // Draw echo rings
+    if (elapsed > totalDur + 4) { activeRipples.splice(r, 1); }
+  }
+
+  // ——— For each ripple: draw the fibonacci spiral building itself ———
+  for (const ripple of activeRipples) {
+    const elapsed = (now - ripple.startTime) / 1000;
+    const decay = ripple.params.decay;
+    const gaps = ripple.gaps;
+    const echoes = ripple.echoes;
+
+    // Center of this ripple
+    const rx = ripple.x * w;
+    const ry = ripple.y * h;
+
+    // Calculate which echo we're on
     let echoTime = 0;
-    for (let i = 0; i <= ripple.echoes; i++) {
-      const echoElapsed = elapsed - echoTime;
-      
-      if (echoElapsed > 0) {
-        const amp = Math.pow(ripple.params.decay, i);
-        const radius = echoElapsed * 80 * (1 + i * 0.1);
-        const alpha = amp * Math.max(0, 1 - echoElapsed / 4);
-        
-        if (alpha > 0.01) {
-          // Golden spiral angle for each echo
-          const spiralAngle = i * PHI * Math.PI * 2;
-          const spiralRadius = i * 15;
-          const ex = cx + Math.cos(spiralAngle) * spiralRadius;
-          const ey = cy + Math.sin(spiralAngle) * spiralRadius;
-          
-          // Main ring
+    const echoTimes = [0];
+    for (let i = 0; i < gaps.length; i++) {
+      echoTime += gaps[i];
+      echoTimes.push(echoTime);
+    }
+
+    // ——— FIBONACCI SPIRAL: draws itself as echoes fire ———
+    // Classic fibonacci rectangle spiral: each arc is a quarter-circle
+    // whose radius is the fibonacci number, chaining from corner to corner
+    const baseScale = Math.min(w, h) * 0.06;
+
+    ctx.save();
+    ctx.translate(rx, ry);
+
+    // Build the fibonacci rectangle spiral centers
+    // Each quarter-turn, the center shifts to the next corner
+    // Directions cycle: right, up, left, down (corners of growing golden rectangle)
+    const dirs = [[1,0],[0,-1],[-1,0],[0,1]]; // dx, dy for each quarter turn
+    let acx = 0, acy = 0; // accumulated center offset
+
+    for (let i = 0; i <= echoes; i++) {
+      const echoElapsed = elapsed - echoTimes[i];
+      if (echoElapsed < 0) break;
+
+      const amp = Math.pow(decay, i);
+      const alpha = amp * Math.max(0, 1 - echoElapsed / 5);
+      if (alpha < 0.003) continue;
+
+      const fibVal = FIB[Math.min(i, FIB.length - 1)];
+      const fibRadius = fibVal * baseScale;
+      const startAngle = i * Math.PI / 2;
+      const endAngle = startAngle + Math.PI / 2;
+
+      // Animated draw-in
+      const drawProgress = Math.min(1, echoElapsed / 0.5);
+      const currentEnd = startAngle + (endAngle - startAngle) * drawProgress;
+
+      // Draw the arc segment
+      ctx.beginPath();
+      ctx.arc(acx, acy, fibRadius, startAngle, currentEnd);
+      ctx.lineWidth = Math.max(0.5, 4 * amp);
+      ctx.strokeStyle = `rgba(212, 162, 78, ${alpha * 0.9})`;
+      ctx.stroke();
+
+      // Bright leading dot
+      if (drawProgress < 1 || echoElapsed < 0.8) {
+        const dotProgress = drawProgress < 1 ? drawProgress : Math.max(0, 1 - (echoElapsed - 0.5) / 0.3);
+        const dotAngle = drawProgress < 1 ? currentEnd : endAngle;
+        const dotX = acx + Math.cos(dotAngle) * fibRadius;
+        const dotY = acy + Math.sin(dotAngle) * fibRadius;
+        const dotSize = 10 * amp * dotProgress;
+        if (dotSize > 0.5) {
+          const dotGrad = ctx.createRadialGradient(dotX, dotY, 0, dotX, dotY, dotSize);
+          dotGrad.addColorStop(0, `rgba(255, 240, 210, ${alpha * dotProgress})`);
+          dotGrad.addColorStop(0.5, `rgba(232, 192, 112, ${alpha * dotProgress * 0.5})`);
+          dotGrad.addColorStop(1, `rgba(212, 162, 78, 0)`);
           ctx.beginPath();
-          ctx.arc(ex, ey, radius, 0, Math.PI * 2);
-          ctx.strokeStyle = `rgba(212, 162, 78, ${alpha * 0.6})`;
-          ctx.lineWidth = 2 * amp;
-          ctx.stroke();
-          
-          // Harmonic rings — smaller, inner
-          if (ripple.params.depth > 0) {
-            for (let h = 2; h <= ripple.params.depth + 1 && h <= 6; h++) {
-              const hRadius = radius / h;
-              const hAlpha = alpha * ripple.params.bloom * 0.4 / h;
-              if (hAlpha > 0.01) {
-                ctx.beginPath();
-                ctx.arc(ex, ey, hRadius, 0, Math.PI * 2);
-                // Color shifts with harmonic number
-                const hue = 35 + h * 15;
-                ctx.strokeStyle = `hsla(${hue}, 70%, 55%, ${hAlpha})`;
-                ctx.lineWidth = 1;
-                ctx.stroke();
-              }
-            }
-          }
-          
-          // Echo pulse dot
-          if (echoElapsed < 0.3) {
-            const dotAlpha = amp * (1 - echoElapsed / 0.3);
-            ctx.beginPath();
-            ctx.arc(ex, ey, 5 * amp, 0, Math.PI * 2);
-            ctx.fillStyle = `rgba(232, 192, 112, ${dotAlpha})`;
-            ctx.fill();
-          }
-          
-          // Echo number
-          if (echoElapsed < 2 && i > 0) {
-            ctx.font = '10px Courier New';
-            ctx.fillStyle = `rgba(150, 120, 60, ${alpha * 0.5})`;
-            ctx.fillText(`φ^${i}=${amp.toFixed(3)}`, ex + 8, ey - 8);
-          }
+          ctx.arc(dotX, dotY, dotSize, 0, Math.PI * 2);
+          ctx.fillStyle = dotGrad;
+          ctx.fill();
         }
       }
-      
-      if (i < ripple.gaps.length) echoTime += ripple.gaps[i];
+
+      // Ripple ring expanding from this echo's impact point
+      if (echoElapsed > 0 && echoElapsed < 3) {
+        const impactAngle = startAngle; // where the echo "lands"
+        const impactX = acx + Math.cos(impactAngle) * fibRadius;
+        const impactY = acy + Math.sin(impactAngle) * fibRadius;
+        const ringRadius = echoElapsed * 50;
+        const ringAlpha = alpha * Math.max(0, 1 - echoElapsed / 3) * 0.3;
+        ctx.beginPath();
+        ctx.arc(impactX, impactY, ringRadius, 0, Math.PI * 2);
+        ctx.strokeStyle = `rgba(212, 162, 78, ${ringAlpha})`;
+        ctx.lineWidth = 1.5 * amp;
+        ctx.stroke();
+      }
+
+      // Shift center for next arc (fibonacci rectangle corner progression)
+      if (i < echoes) {
+        const nextFib = FIB[Math.min(i + 1, FIB.length - 1)];
+        const dir = dirs[i % 4];
+        acx += dir[0] * nextFib * baseScale;
+        acy += dir[1] * nextFib * baseScale;
+      }
     }
-    
-    // Draw Fibonacci timing markers along bottom — fade out after cascade completes
-    echoTime = 0;
+
+    ctx.restore();
+
+    // ——— Timeline at bottom ———
+    let totalDur = 0;
+    for (let i = 0; i < gaps.length; i++) totalDur += gaps[i];
     const timelineY = h - 20;
     const timelineScale = w / (totalDur + 1);
-    const fadeStart = totalDur + 1; // start fading after last echo
-    const fadeDur = 3; // fade over 3 seconds
-    const markerFade = elapsed > fadeStart ? Math.max(0, 1 - (elapsed - fadeStart) / fadeDur) : 1;
-    
-    if (markerFade > 0) {
-      for (let i = 0; i <= ripple.echoes; i++) {
-        const tx = echoTime * timelineScale + 10;
-        const tAlpha = (elapsed > echoTime ? 0.8 : 0.2) * markerFade;
-        const amp = Math.pow(ripple.params.decay, i);
-        
-        // Timeline dot
-        ctx.beginPath();
-        ctx.arc(tx, timelineY, 3 * amp + 1, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(212, 162, 78, ${tAlpha * amp})`;
-        ctx.fill();
-        
-        // Gap label
-        if (i < ripple.gaps.length) {
-          const nextTx = (echoTime + ripple.gaps[i]) * timelineScale + 10;
-          ctx.font = '8px Courier New';
-          ctx.fillStyle = `rgba(100, 80, 40, ${tAlpha * 0.6})`;
-          const seqLabels = {
-            fibonacci: `F${FIB[i]}`,
-            golden: `φ${(i+1)}`,
-            linear: `L${i+1}`,
-            log: `lg${i+1}`,
-          };
-          const gapLabel = seqLabels[ripple.params.seq] || `×${ripple.gaps[i].toFixed(2)}s`;
-          ctx.fillText(gapLabel, (tx + nextTx) / 2 - 8, timelineY - 6);
-        }
-        
-        if (i < ripple.gaps.length) echoTime += ripple.gaps[i];
+
+    for (let i = 0; i <= echoes; i++) {
+      const tx = echoTimes[i] * timelineScale + 10;
+      const tAlpha = (elapsed > echoTimes[i] ? 0.8 : 0.2);
+      const amp = Math.pow(decay, i);
+
+      ctx.beginPath();
+      ctx.arc(tx, timelineY, 3 * amp + 1, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(212, 162, 78, ${tAlpha * amp})`;
+      ctx.fill();
+
+      if (i < gaps.length) {
+        const nextTx = echoTimes[i + 1] * timelineScale + 10;
+        ctx.font = '8px Courier New';
+        ctx.fillStyle = `rgba(100, 80, 40, ${tAlpha * 0.5})`;
+        const label = ripple.params.seq === 'fibonacci' ? `F${FIB[i]}` : ripple.params.seq === 'golden' ? `φ${i+1}` : `${i+1}`;
+        ctx.fillText(label, (tx + nextTx) / 2 - 6, timelineY - 6);
       }
     }
-    
+
     // Playhead
     const playheadX = elapsed * timelineScale + 10;
-    if (playheadX < w) {
+    if (playheadX < w && elapsed < totalDur + 1) {
       ctx.beginPath();
       ctx.moveTo(playheadX, timelineY - 8);
       ctx.lineTo(playheadX, timelineY + 8);
-      ctx.strokeStyle = 'rgba(232, 192, 112, 0.8)';
+      ctx.strokeStyle = 'rgba(232, 192, 112, 0.7)';
       ctx.lineWidth = 1;
       ctx.stroke();
     }
   }
-  
-  // Golden spiral background (subtle)
+
+  // ——— Idle: subtle breathing golden spiral ———
   if (activeRipples.length === 0) {
     ctx.save();
-    ctx.translate(w / 2, h / 2);
+    ctx.translate(cx, cy);
     ctx.beginPath();
-    for (let t = 0; t < 20; t += 0.02) {
-      const r = 5 * Math.pow(PHI, t / (Math.PI * 2));
-      if (r > Math.max(w, h)) break;
-      const x = r * Math.cos(t);
-      const y = r * Math.sin(t);
-      if (t === 0) ctx.moveTo(x, y);
-      else ctx.lineTo(x, y);
+    for (let t = 0; t < 16; t += 0.03) {
+      const r = 4 * Math.pow(PHI, t / (Math.PI * 2));
+      if (r > Math.min(w, h) * 0.4) break;
+      const x = r * Math.cos(t + timeSec * 0.03);
+      const y = r * Math.sin(t + timeSec * 0.03);
+      t === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
     }
-    ctx.strokeStyle = 'rgba(212, 162, 78, 0.04)';
-    ctx.lineWidth = 1;
+    ctx.strokeStyle = `rgba(212, 162, 78, ${0.04 + 0.02 * Math.sin(timeSec * 0.4)})`;
+    ctx.lineWidth = 0.8;
     ctx.stroke();
     ctx.restore();
-    
-    ctx.font = '14px Courier New';
-    ctx.fillStyle = 'rgba(100, 80, 40, 0.3)';
+
+    ctx.font = '13px Courier New';
+    ctx.fillStyle = `rgba(100, 80, 40, ${0.15 + 0.08 * Math.sin(timeSec * 0.6)})`;
     ctx.textAlign = 'center';
-    ctx.fillText('play a note to create a ripple', w / 2, h / 2);
+    ctx.fillText('play a note to create a ripple', cx, cy);
     ctx.textAlign = 'left';
   }
-  
+
   requestAnimationFrame(drawFrame);
 }
 drawFrame();
@@ -1627,7 +1916,7 @@ function noteOn(midi, name, keyEl) {
   if (tc) tc.textContent = `E:${_p.echoes} D:${_p.depth}`;
   
   // Immediate first trigger
-  triggerRipple(freq, name);
+  triggerRipple(freq, name, midi);
   
   // Hold tracking (pulse disabled for now — isolating intentional sounds)
   if (!heldNotes[midi]) {
@@ -1869,10 +2158,16 @@ function handleMidiCC(cc, value) {
 
 // Save/load CC map to localStorage
 function saveCCMap() {
+  SyncStore.set('ripple-cc-map', CC_MAP);
   localStorage.setItem('ripple-cc-map', JSON.stringify(CC_MAP));
 }
 
-function loadCCMap() {
+async function loadCCMap() {
+  const synced = await SyncStore.get('ripple-cc-map');
+  if (synced) {
+    Object.assign(CC_MAP, synced);
+    return;
+  }
   const saved = localStorage.getItem('ripple-cc-map');
   if (saved) {
     try {
@@ -2500,9 +2795,10 @@ function playSequenceOnce(speed) {
     // Visual ripple (delayed)
     setTimeout(() => {
       if (seqState !== 'playing') return;
+      const _pos3 = _vizNotePosition(freq, note.midi);
       activeRipples.push({
-        x: Math.random() * 0.6 + 0.2,
-        y: Math.random() * 0.5 + 0.25,
+        x: _pos3.x,
+        y: _pos3.y,
         freq,
         noteName: note.name,
         startTime: performance.now(),
@@ -2950,6 +3246,291 @@ if (origMidiStatus && stripMidiStatus) {
     stripMidiStatus.textContent = origMidiStatus.textContent.replace('MIDI: ', '');
     stripMidiStatus.style.color = origMidiStatus.classList.contains('connected') ? '#4a4' : '#333';
   }).observe(origMidiStatus, { childList: true, characterData: true, subtree: true });
+}
+
+// ========== USER PRESETS ==========
+const USER_PRESETS_KEY = 'rippleEngineUserPresets';
+let userPresets = {};
+
+async function loadUserPresets() {
+  try {
+    const data = await SyncStore.get(USER_PRESETS_KEY);
+    if (data && data.presets) userPresets = data.presets;
+  } catch(e) {}
+  // Fallback localStorage
+  if (Object.keys(userPresets).length === 0) {
+    try { const raw = localStorage.getItem(USER_PRESETS_KEY); if (raw) userPresets = JSON.parse(raw); } catch(e) {}
+  }
+  renderUserPresetList();
+}
+
+function saveUserPresetsToStore() {
+  const data = { presets: userPresets, _ts: Date.now() };
+  SyncStore.set(USER_PRESETS_KEY, data);
+  localStorage.setItem(USER_PRESETS_KEY, JSON.stringify(userPresets));
+}
+
+function renderUserPresetList() {
+  const sel = document.getElementById('user-preset-list');
+  const current = sel.value;
+  sel.innerHTML = '<option value="">— select —</option>';
+  Object.keys(userPresets).sort().forEach(name => {
+    const opt = document.createElement('option');
+    opt.value = name;
+    opt.textContent = name;
+    sel.appendChild(opt);
+  });
+  if (current && userPresets[current]) sel.value = current;
+}
+
+function saveUserPreset() {
+  const name = prompt('Preset name:');
+  if (!name || !name.trim()) return;
+  const params = getParams();
+  // Also save generative state
+  params._genRoot = document.getElementById('gen-root')?.value || '60';
+  params._genDensity = document.getElementById('gen-density')?.value || '0.3';
+  params._genTiming = genTiming;
+  params._noteMode = currentNoteMode;
+  params._tuning = tuningMode;
+  params._harmonicsOn = harmonicsActive;
+  userPresets[name.trim()] = params;
+  saveUserPresetsToStore();
+  renderUserPresetList();
+  document.getElementById('user-preset-list').value = name.trim();
+}
+
+function loadUserPreset(name) {
+  if (!name || !userPresets[name]) return;
+  const p = userPresets[name];
+  // Apply sound params
+  Object.keys(p).forEach(key => {
+    if (key.startsWith('_')) return; // skip meta keys
+    if (key === 'seq') {
+      currentSeqMode = p.seq;
+      document.querySelectorAll('#seq-presets .preset-btn').forEach(b => b.classList.toggle('active', b.dataset.seq === p.seq));
+    } else {
+      const inputId = PARAM_TO_INPUT[key] || key;
+      const input = document.getElementById(inputId);
+      if (input) { input.value = p[key]; input.dispatchEvent(new Event('input')); }
+    }
+  });
+  // Restore generative settings
+  if (p._genRoot) { const r = document.getElementById('gen-root'); if (r) r.value = p._genRoot; const sr = document.getElementById('s-gen-root'); if (sr) sr.value = p._genRoot; }
+  if (p._genDensity) { const d = document.getElementById('gen-density'); if (d) d.value = p._genDensity; const sd = document.getElementById('s-gen-density'); if (sd) sd.value = p._genDensity; }
+  if (p._genTiming) genTiming = p._genTiming;
+  if (p._harmonicsOn !== undefined && p._harmonicsOn !== harmonicsActive) toggleHarmonics();
+  if (p._noteMode) setNoteMode(p._noteMode);
+  // Sync strip
+  if (typeof syncStripFromOriginal === 'function') syncStripFromOriginal();
+  // Update reverb
+  if (dryGain) dryGain.gain.value = 1 - p.reverb * 0.5;
+  if (reverbGain) reverbGain.gain.value = p.reverb;
+}
+
+function deleteUserPreset() {
+  const sel = document.getElementById('user-preset-list');
+  const name = sel.value;
+  if (!name) { alert('Select a preset to delete.'); return; }
+  if (!confirm(`Delete "${name}"?`)) return;
+  delete userPresets[name];
+  saveUserPresetsToStore();
+  renderUserPresetList();
+}
+
+// Load on startup
+loadUserPresets();
+
+// ========== GENERATIVE MODE ==========
+// (genActive, genTimer, genTiming, genStep, GEN_FIB, GEN_PHI, GEN_INTERVALS declared earlier)
+
+function applySpaciousness(val) {
+  document.getElementById('val-genspace').textContent = val.toFixed(2);
+  
+  // Density: spacious = sparse, tight = dense
+  const density = 0.8 - val * 0.7; // 0.8 (tight) → 0.1 (spacious)
+  document.getElementById('gen-density').value = density;
+  document.getElementById('val-gendensity').textContent = density.toFixed(2);
+  
+  // Reverb: more space = more reverb
+  const reverbSlider = document.getElementById('reverb');
+  if (reverbSlider) {
+    reverbSlider.value = 0.2 + val * 0.7; // 0.2 → 0.9
+    reverbSlider.dispatchEvent(new Event('input'));
+  }
+  
+  // Release: more space = longer tails
+  const releaseSlider = document.getElementById('release');
+  if (releaseSlider) {
+    releaseSlider.value = 0.3 + val * 1.7; // 0.3s → 2.0s
+    releaseSlider.dispatchEvent(new Event('input'));
+  }
+  
+  // Gap: more space = longer echo gaps
+  const gapSlider = document.getElementById('gap');
+  if (gapSlider) {
+    gapSlider.value = 200 + val * 600; // 200ms → 800ms
+    gapSlider.dispatchEvent(new Event('input'));
+  }
+  
+  // Decay: more space = longer echo decay
+  const decaySlider = document.getElementById('decay');
+  if (decaySlider) {
+    decaySlider.value = 0.5 + val * 0.35; // 0.5 → 0.85
+    decaySlider.dispatchEvent(new Event('input'));
+  }
+}
+
+function toggleGenerative() {
+  const btn = document.getElementById('gen-start');
+  const sBtn = document.getElementById('s-gen-start');
+  if (genActive) {
+    genActive = false;
+    if (genTimer) clearTimeout(genTimer);
+    if (polyTimerB) clearTimeout(polyTimerB);
+    genTimer = null;
+    polyTimerB = null;
+    if (btn) { btn.textContent = '▶ Start'; btn.classList.remove('recording'); }
+    if (sBtn) { sBtn.textContent = '▶'; sBtn.classList.remove('active'); }
+    document.getElementById('gen-info').textContent = 'Stopped.';
+  } else {
+    initAudio();
+    genActive = true;
+    genStep = 0;
+    polyStepA = 0;
+    polyStepB = 0;
+    if (btn) { btn.textContent = '⏹ Stop'; btn.classList.add('recording'); }
+    if (sBtn) { sBtn.textContent = '⏹'; sBtn.classList.add('active'); }
+    document.getElementById('gen-info').textContent = 'Generating...';
+    
+    if (genTiming.startsWith('poly-')) {
+      schedulePolyNote();
+    } else {
+      scheduleGenNote();
+    }
+  }
+}
+
+// Parse poly ratio from genTiming string like "poly-3:2"
+function getPolyRatio() {
+  const match = genTiming.match(/poly-(\d+):(\d+)/);
+  if (!match) return [3, 2];
+  return [parseInt(match[1]), parseInt(match[2])];
+}
+
+function schedulePolyNote() {
+  if (!genActive || !genTiming.startsWith('poly-')) return;
+  
+  const density = parseFloat(document.getElementById('gen-density').value);
+  const rootMidi = parseInt(document.getElementById('gen-root').value);
+  const [ratioA, ratioB] = getPolyRatio();
+  
+  // Cycle length in ms — one full polyrhythm cycle
+  const cycleMs = 3000 / density;
+  
+  // Voice A: ratioA evenly spaced hits per cycle (lower register, root-based)
+  const intervalA = cycleMs / ratioA;
+  // Voice B: ratioB evenly spaced hits per cycle (upper register, fifths/octaves)
+  const intervalB = cycleMs / ratioB;
+  
+  // Voice A intervals — stay close to root (unison, octave, fifth)
+  const voiceAIntervals = [0, 0, 7, 12, -12];
+  // Voice B intervals — upper harmonics (fifth, octave, tenth, twelfth)  
+  const voiceBIntervals = [7, 12, 16, 19, 24];
+  
+  // Schedule voice A
+  function scheduleA() {
+    if (!genActive || !genTiming.startsWith('poly-')) return;
+    
+    const interval = voiceAIntervals[polyStepA % voiceAIntervals.length];
+    const midi = Math.max(36, Math.min(84, rootMidi + interval));
+    const name = NOTE_NAMES[midi % 12] + Math.floor(midi / 12 - 1);
+    noteOn(midi, name, null);
+    
+    const info = document.getElementById('gen-info');
+    info.textContent = `♪ A:${name} | ${ratioA}:${ratioB} | step ${polyStepA+1}:${polyStepB} | cycle ${(cycleMs/1000).toFixed(1)}s`;
+    
+    polyStepA++;
+    const jitter = intervalA * (0.95 + Math.random() * 0.1); // slight humanize
+    genTimer = setTimeout(scheduleA, jitter);
+  }
+  
+  // Schedule voice B
+  function scheduleB() {
+    if (!genActive || !genTiming.startsWith('poly-')) return;
+    
+    const interval = voiceBIntervals[polyStepB % voiceBIntervals.length];
+    const midi = Math.max(36, Math.min(84, rootMidi + interval));
+    const name = NOTE_NAMES[midi % 12] + Math.floor(midi / 12 - 1);
+    noteOn(midi, name, null);
+    
+    const info = document.getElementById('gen-info');
+    info.textContent = `♪ B:${name} | ${ratioA}:${ratioB} | step ${polyStepA}:${polyStepB+1} | cycle ${(cycleMs/1000).toFixed(1)}s`;
+    
+    polyStepB++;
+    const jitter = intervalB * (0.95 + Math.random() * 0.1);
+    polyTimerB = setTimeout(scheduleB, jitter);
+  }
+  
+  // Stagger start — voice B enters slightly after voice A
+  scheduleA();
+  setTimeout(scheduleB, intervalB * 0.5);
+}
+
+function scheduleGenNote() {
+  if (!genActive) return;
+  
+  // If switched to poly mode mid-gen, redirect
+  if (genTiming.startsWith('poly-')) {
+    polyStepA = 0; polyStepB = 0;
+    schedulePolyNote();
+    return;
+  }
+  
+  const density = parseFloat(document.getElementById('gen-density').value);
+  const rootMidi = parseInt(document.getElementById('gen-root').value);
+  
+  // Calculate delay based on timing mode
+  let delayMs;
+  const baseMs = 800 / density; // higher density = shorter gaps
+  
+  switch (genTiming) {
+    case 'fibonacci':
+      delayMs = baseMs * GEN_FIB[genStep % GEN_FIB.length] * 0.3;
+      break;
+    case 'golden':
+      delayMs = baseMs * Math.pow(GEN_PHI, (genStep % 7) - 2) * 0.5;
+      break;
+    case 'linear':
+      delayMs = baseMs * (0.5 + Math.random() * 0.5);
+      break;
+  }
+  
+  // Add slight randomness for organic feel
+  delayMs *= (0.85 + Math.random() * 0.3);
+  delayMs = Math.max(300, Math.min(delayMs, 8000));
+  
+  genTimer = setTimeout(() => {
+    if (!genActive) return;
+    
+    // Pick a consonant interval
+    const interval = GEN_INTERVALS[Math.floor(Math.random() * GEN_INTERVALS.length)];
+    const midi = rootMidi + interval;
+    
+    // Clamp to playable range
+    const clampedMidi = Math.max(36, Math.min(84, midi));
+    const name = NOTE_NAMES[clampedMidi % 12] + Math.floor(clampedMidi / 12 - 1);
+    
+    // Play through the existing ripple system
+    noteOn(clampedMidi, name, null);
+    
+    // Update info
+    document.getElementById('gen-info').textContent = 
+      `♪ ${name} | step ${genStep + 1} | next: ${(delayMs/1000).toFixed(1)}s | ${genTiming}`;
+    
+    genStep++;
+    scheduleGenNote();
+  }, delayMs);
 }
 </script>
 </body>
