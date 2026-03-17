@@ -4277,6 +4277,19 @@ function setQuantizeMode(mode) {
   }
   const sBtn = document.getElementById('s-btn-quantize');
   if (sBtn) sBtn.classList.toggle('active', mode === 'hard');
+  
+  // OFF mode defaults to LIN gap pattern — free play = linear echoes
+  if (mode === 'off') {
+    currentSeqMode = 'linear';
+    document.getElementById('val-seq').textContent = 'linear';
+    // Update gap button highlights in both control areas
+    document.querySelectorAll('.strip-btn[data-seq]').forEach(b => {
+      b.classList.toggle('active', b.dataset.seq === 'linear');
+    });
+    document.querySelectorAll('.preset-btn[data-seq]').forEach(b => {
+      b.classList.toggle('active', b.dataset.seq === 'linear');
+    });
+  }
 }
 
 // Override triggerRipple to implement all 4 quantize modes properly
@@ -4320,9 +4333,43 @@ triggerRipple = function(freq, noteName, midi, velocity) {
     return;
   }
   
-  // Free mode: note plays IMMEDIATELY, echoes follow Fibonacci timing
-  // Echo Snap: same as Free (note immediate, echoes in Fibonacci time, grid rebuilt from this note)
-  if (currentQuantizeMode === 'free' || currentQuantizeMode === 'echo-snap') {
+  // Free mode: COMPLETELY bypass _originalTriggerRipple — no grid, no queue, no shared state
+  // Every note plays IMMEDIATELY and starts its own independent echo cascade (polyphonic ripples)
+  if (currentQuantizeMode === 'free') {
+    initAudio();
+    const params = getParams();
+    const now = audioCtx.currentTime + 0.01; // tiny offset to avoid clicks
+    const baseGap = params.gap / 1000;
+    const gapSequence = getGapSequence(baseGap, params.echoes, currentSeqMode);
+    
+    // Schedule echoes — each note press is fully independent
+    let time = now;
+    for (let i = 0; i <= params.echoes; i++) {
+      const amp = 0.3 * velGainQ * Math.pow(params.decay, i);
+      playTone(freq, time, amp, i, params);
+      if (i < gapSequence.length) time += gapSequence[i];
+    }
+    
+    // Visual ripple (independent, no shared grid rebuild)
+    const _pos = _vizNotePosition(freq, midi);
+    activeRipples.push({
+      x: _pos.x, y: _pos.y, freq, noteName,
+      startTime: performance.now(), params: { ...params }, gaps: gapSequence,
+      echoes: params.echoes,
+    });
+    
+    // Update info display
+    document.getElementById('info-note').className = 'active';
+    document.getElementById('info-note').textContent = `♪ ${noteName} (${freq.toFixed(1)}Hz)`;
+    document.getElementById('info-echo').className = 'active';
+    document.getElementById('info-echo').textContent = `Echoes: ${params.echoes} @ φ=${params.decay.toFixed(3)} (${currentSeqMode})`;
+    document.getElementById('info-harmonics').className = 'active';
+    document.getElementById('info-harmonics').textContent = `Gap: ${params.gap}ms × ${params.echoes} echoes (FREE — ${currentSeqMode})`;
+    return;
+  }
+  
+  // Echo Snap: note plays immediately, but rebuilds the shared bloom grid from this note
+  if (currentQuantizeMode === 'echo-snap') {
     // Force quantizeEnabled OFF so the original function won't delay the initial note
     const wasEnabled = quantizeEnabled;
     quantizeEnabled = false;
