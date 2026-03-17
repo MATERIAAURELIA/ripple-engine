@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>Ripple Engine — Sacred Geometry Delay</title>
+<title>Ripple Engine — Explorer Mode</title>
 <script src="../../sync.js"></script>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -577,79 +577,152 @@
     font-family: 'Courier New', monospace;
     border-radius: 3px;
   }
+
+  /* Essentials bar slider thumbs */
+  #essentials-bar input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 14px;
+    height: 14px;
+    background: #c8a44e;
+    border-radius: 50%;
+    cursor: pointer;
+    box-shadow: 0 0 6px rgba(200, 164, 78, 0.3);
+  }
+
+  /* Gen tab controls slider thumbs */
+  #gen-tab-controls input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 12px;
+    height: 12px;
+    background: #c8a44e;
+    border-radius: 50%;
+    cursor: pointer;
+  }
 </style>
 </head>
 <body>
 
-<div id="header">
-  <div>
-    <h1>Ripple Engine</h1>
-    <div class="subtitle">sacred geometry delay · φ decay · fibonacci timing · harmonic resonance</div>
-  </div>
+<!-- ===== EXPLORER HEADER ===== -->
+<div id="header" style="padding:10px 20px; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #1a1a2a; background:linear-gradient(180deg, #0e0e18 0%, #0a0a12 100%); flex-shrink:0; z-index:10;">
+  <div style="font-size:15px; letter-spacing:4px; text-transform:uppercase; font-weight:bold; color:#c8a44e;">Explorer Mode</div>
   <div style="display:flex; align-items:center; gap:12px;">
+    <select id="mode-dropdown" style="background:#12121e; color:#c8a44e; border:1px solid #2a2a3a; padding:6px 12px; font-size:11px; font-family:'Courier New',monospace; letter-spacing:1px; border-radius:4px; cursor:pointer; text-transform:uppercase;">
+      <option value="pure-sine" selected>Mode 1: Pure Sine</option>
+    </select>
     <div id="midi-status">MIDI: scanning...</div>
-    <button id="midi-map-toggle" onclick="toggleMidiMap()" style="background:#1a1a2a; border:1px solid #333; color:#d4a24e; padding:4px 10px; border-radius:4px; cursor:pointer; font-size:11px; font-family:monospace;">🎛️ MIDI Map</button>
-  </div>
-
-  
-  <!-- MIDI MAPPING PANEL — Cobalt 8 Layout -->
-  <div id="midi-map-panel" style="display:none; position:fixed; top:20px; left:50%; transform:translateX(-50%); width:min(97vw, 1200px); background:linear-gradient(180deg, #0c1018 0%, #080c14 100%); border:1px solid #1a2a3a; border-radius:12px; padding:16px; z-index:200; font-size:12px; box-shadow: 0 12px 60px rgba(0,0,0,0.95); max-height:90vh; overflow-y:auto;">
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
-      <span style="font-weight:bold; letter-spacing:3px; text-transform:uppercase; font-size:11px; color:#4488cc;">🎹 COBALT 8 → RIPPLE ENGINE</span>
-      <div style="display:flex; gap:8px; align-items:center;">
-        <button id="btn-midi-learn" class="preset-btn" onclick="toggleMidiLearnMode()" style="font-size:0.75em; padding:3px 10px;">🎛 MIDI Learn</button>
-        <button onclick="toggleMidiMap()" style="background:none; border:none; color:#666; cursor:pointer; font-size:18px;">✕</button>
-      </div>
-    </div>
-    
-    <div id="cobalt-panel">
-      <!-- Dynamically rendered by renderMidiMap() — Cobalt 8 physical panel mirror -->
-    </div>
-    
-    <div style="margin-top:8px; display:flex; align-items:center; gap:12px;">
-      <div id="midi-learn-status" style="font-size:0.7em; color:#555; flex:1;"></div>
-    </div>
+    <button id="midi-map-toggle" onclick="toggleMidiMap()" style="background:#1a1a2a; border:1px solid #2a2a3a; color:#c8a44e; padding:4px 10px; border-radius:4px; cursor:pointer; font-size:11px; font-family:monospace;">🎛️ MIDI Map</button>
   </div>
 </div>
 
-<!-- MODE PRESETS BAR -->
-<div id="mode-presets-bar">
+<!-- MIDI MAPPING PANEL — Cobalt 8 Layout -->
+<div id="midi-map-panel" style="display:none; position:fixed; top:20px; left:50%; transform:translateX(-50%); width:min(97vw, 1200px); background:linear-gradient(180deg, #0c1018 0%, #080c14 100%); border:1px solid #1a2a3a; border-radius:12px; padding:16px; z-index:200; font-size:12px; box-shadow: 0 12px 60px rgba(0,0,0,0.95); max-height:90vh; overflow-y:auto;">
+  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+    <span style="font-weight:bold; letter-spacing:3px; text-transform:uppercase; font-size:11px; color:#4488cc;">🎹 COBALT 8 → RIPPLE ENGINE</span>
+    <div style="display:flex; gap:8px; align-items:center;">
+      <button id="btn-midi-learn" class="preset-btn" onclick="toggleMidiLearnMode()" style="font-size:0.75em; padding:3px 10px;">🎛 MIDI Learn</button>
+      <button onclick="toggleMidiMap()" style="background:none; border:none; color:#666; cursor:pointer; font-size:18px;">✕</button>
+    </div>
+  </div>
+  <div id="cobalt-panel"></div>
+  <div style="margin-top:8px; display:flex; align-items:center; gap:12px;">
+    <div id="midi-learn-status" style="font-size:0.7em; color:#555; flex:1;"></div>
+  </div>
+</div>
+
+<!-- ===== PLAYER / GEN MODE TABS ===== -->
+<div id="mode-tabs" style="display:flex; padding:0 20px; background:#0c0c16; border-bottom:1px solid #1a1a2a; flex-shrink:0; z-index:10;">
+  <button class="mode-btn" id="tab-player" onclick="switchTab('player')" style="padding:8px 24px; font-size:11px; letter-spacing:2px; text-transform:uppercase; border:none; background:none; border-bottom:2px solid #c8a44e; color:#c8a44e; cursor:pointer; font-family:'Courier New',monospace;">Player Mode</button>
+  <button class="mode-btn" id="tab-gen" onclick="switchTab('gen')" style="padding:8px 24px; font-size:11px; letter-spacing:2px; text-transform:uppercase; border:none; background:none; border-bottom:2px solid transparent; color:#555; cursor:pointer; font-family:'Courier New',monospace;">Gen Mode</button>
+</div>
+
+<!-- ===== GEN TAB CONTROLS (hidden when player tab active) ===== -->
+<div id="gen-tab-controls" style="display:none; padding:6px 20px; background:#0c0c16; border-bottom:1px solid #1a1a2a; flex-shrink:0; z-index:10; align-items:center; gap:16px;">
+  <button class="mode-btn" id="gen-tab-play" onclick="toggleGenerative()" style="background:#1a1a2a; border:1px solid #2a2a3a; color:#c8a44e; padding:5px 16px; font-size:11px; font-family:'Courier New',monospace; cursor:pointer; border-radius:4px; letter-spacing:1px;">▶ START</button>
+  <div style="display:flex; align-items:center; gap:6px;">
+    <span style="font-size:9px; color:#666; text-transform:uppercase; letter-spacing:1px;">Root</span>
+    <select id="s-gen-root" style="background:#12121e;color:#c8a44e;border:1px solid #2a2a3a;padding:3px 6px;font-size:10px;font-family:monospace;border-radius:3px;" onchange="document.getElementById('gen-root').value=this.value">
+      <option value="48">C3</option><option value="55">G3</option><option value="60" selected>C4</option><option value="67">G4</option>
+    </select>
+  </div>
+  <div style="display:flex; align-items:center; gap:6px;">
+    <span style="font-size:9px; color:#666; text-transform:uppercase; letter-spacing:1px;">Density</span>
+    <input type="range" id="s-gen-density" min="0.05" max="1" step="0.05" value="0.3" oninput="document.getElementById('gen-density').value=this.value; document.getElementById('gen-tab-density-val').textContent=parseFloat(this.value).toFixed(2)" style="width:60px; -webkit-appearance:none; height:3px; background:#1a1a2a; border:none; outline:none;">
+    <span style="font-size:10px; color:#c8a44e; font-weight:bold; min-width:28px;" id="gen-tab-density-val">0.30</span>
+  </div>
+  <div style="display:flex; align-items:center; gap:4px;">
+    <span style="font-size:9px; color:#666; text-transform:uppercase; letter-spacing:1px;">Timing</span>
+    <button class="q-toggle active" data-gentiming="fibonacci" onclick="genTiming='fibonacci';document.querySelectorAll('[data-gentiming]').forEach(b=>b.classList.remove('active'));this.classList.add('active')">FIB</button>
+    <button class="q-toggle" data-gentiming="golden" onclick="genTiming='golden';document.querySelectorAll('[data-gentiming]').forEach(b=>b.classList.remove('active'));this.classList.add('active')">φ</button>
+    <button class="q-toggle" data-gentiming="linear" onclick="genTiming='linear';document.querySelectorAll('[data-gentiming]').forEach(b=>b.classList.remove('active'));this.classList.add('active')">LIN</button>
+  </div>
+  <div style="display:flex; align-items:center; gap:6px;">
+    <span style="font-size:9px; color:#666; text-transform:uppercase; letter-spacing:1px;">Space</span>
+    <input type="range" id="gen-tab-space" min="0" max="1" step="0.01" value="0.5" oninput="applySpaciousness(parseFloat(this.value))" style="width:60px; -webkit-appearance:none; height:3px; background:#1a1a2a; border:none; outline:none;">
+  </div>
+</div>
+
+<!-- MODE PRESETS BAR (removed — replaced by Explorer header) -->
+<!-- Hidden containers for JS compatibility -->
+<div id="mode-presets-bar" style="display:none;">
   <span class="bar-label">Mode:</span>
   <button class="mode-btn" id="mode-pure-sine" onclick="loadModePreset('pure-sine')">✧ Pure Sine</button>
   <div id="custom-mode-btns"></div>
   <button class="mode-btn save-btn" onclick="saveCustomMode()">+ Save</button>
 </div>
 
-<!-- ESSENTIALS BAR -->
-<div id="essentials-bar">
-  <!-- Gap Timing -->
-  <div class="ess-group">
-    <span class="ess-label">Gap Timing:</span>
-    <button class="q-toggle active" id="ess-gap-fib" onclick="setEssGapTiming('fibonacci')">FIB</button>
-    <button class="q-toggle" id="ess-gap-gold" onclick="setEssGapTiming('golden')">GOLD</button>
-    <button class="q-toggle" id="ess-gap-lin" onclick="setEssGapTiming('linear')">LIN</button>
-    <button class="q-toggle" id="ess-gap-log" onclick="setEssGapTiming('log')">LOG</button>
-  </div>
-
-  <!-- Number of Echoes -->
-  <div class="ess-group">
-    <span class="ess-label">Echoes:</span>
-    <div class="ess-mini-knob">
-      <input type="range" id="ess-echoes" min="1" max="21" step="1" value="8" oninput="document.getElementById('echoes').value=this.value; document.getElementById('s-echoes').value=this.value; document.getElementById('echoes').dispatchEvent(new Event('input')); updateStripVal('s-echoes'); document.getElementById('ess-echoes-val').textContent=this.value;">
-      <span class="ess-val" id="ess-echoes-val">8</span>
+<!-- ===== QUICK CONTROL STRIP ===== -->
+<div id="essentials-bar" style="display:flex; align-items:center; gap:12px; padding:8px 20px; background:#0d0d15; border-bottom:1px solid #1a1a2a; flex-shrink:0; z-index:10; flex-wrap:wrap;">
+  <!-- Gap Time -->
+  <div class="ess-group" style="display:flex; align-items:center; gap:6px; padding:2px 6px; border:1px solid #1a1a2a; border-radius:4px;">
+    <span class="ess-label" style="font-size:9px; color:#666; text-transform:uppercase; letter-spacing:1px; white-space:nowrap;">Gap</span>
+    <div style="display:flex; align-items:center; gap:4px;">
+      <input type="range" id="ess-gap" min="100" max="5000" step="10" value="120" oninput="document.getElementById('gap').value=this.value; document.getElementById('s-gap').value=this.value; document.getElementById('gap').dispatchEvent(new Event('input')); updateStripVal('s-gap'); document.getElementById('ess-gap-val').textContent=this.value+'ms';" style="width:80px; -webkit-appearance:none; height:3px; background:#1a1a2a; border-radius:2px; outline:none;">
+      <span class="ess-val" id="ess-gap-val" style="font-size:10px; color:#c8a44e; font-weight:bold; min-width:42px;">120ms</span>
     </div>
   </div>
 
-  <!-- Quantize Mode -->
-  <div class="ess-group">
-    <span class="ess-label">Quantize:</span>
-    <button class="q-toggle" id="q-free" onclick="setQuantizeMode('free')">Free</button>
-    <button class="q-toggle active" id="q-echo-snap" onclick="setQuantizeMode('echo-snap')">Echo Snap</button>
+  <!-- Echoes -->
+  <div class="ess-group" style="display:flex; align-items:center; gap:6px; padding:2px 6px; border:1px solid #1a1a2a; border-radius:4px;">
+    <span class="ess-label" style="font-size:9px; color:#666; text-transform:uppercase; letter-spacing:1px; white-space:nowrap;">Echoes</span>
+    <div style="display:flex; align-items:center; gap:4px;">
+      <input type="range" id="ess-echoes" min="1" max="21" step="1" value="8" oninput="document.getElementById('echoes').value=this.value; document.getElementById('s-echoes').value=this.value; document.getElementById('echoes').dispatchEvent(new Event('input')); updateStripVal('s-echoes'); document.getElementById('ess-echoes-val').textContent=this.value;" style="width:60px; -webkit-appearance:none; height:3px; background:#1a1a2a; border-radius:2px; outline:none;">
+      <span class="ess-val" id="ess-echoes-val" style="font-size:10px; color:#c8a44e; font-weight:bold; min-width:20px;">8</span>
+    </div>
+  </div>
+
+  <!-- Separator -->
+  <div style="width:1px; height:24px; background:#1a1a2a;"></div>
+
+  <!-- Gap Pattern -->
+  <div class="ess-group" style="display:flex; align-items:center; gap:3px;">
+    <button class="q-toggle active" id="ess-gap-fib" onclick="setEssGapTiming('fibonacci')">FIB</button>
+    <button class="q-toggle" id="ess-gap-gold" onclick="setEssGapTiming('golden')">GOLD</button>
+    <button class="q-toggle" id="ess-gap-log" onclick="setEssGapTiming('log')">LOG</button>
+    <button class="q-toggle" id="ess-gap-lin" onclick="setEssGapTiming('linear')">LIN</button>
+  </div>
+
+  <!-- Separator -->
+  <div style="width:1px; height:24px; background:#1a1a2a;"></div>
+
+  <!-- Quantize (4 options: OFF / Free / Echo Snap / Hard) -->
+  <div class="ess-group" style="display:flex; align-items:center; gap:3px;">
+    <button class="q-toggle" id="q-off" onclick="setQuantizeMode('off')">OFF</button>
+    <button class="q-toggle active" id="q-free" onclick="setQuantizeMode('free')">Free</button>
+    <button class="q-toggle" id="q-echo-snap" onclick="setQuantizeMode('echo-snap')">Echo Snap</button>
     <button class="q-toggle" id="q-hard" onclick="setQuantizeMode('hard')">Hard</button>
   </div>
 
-  <!-- Deep Dive Toggle -->
-  <button class="deep-dive-btn" id="deep-dive-toggle" onclick="toggleDeepDive()">⚙ Deep Dive</button>
+  <!-- Separator -->
+  <div style="width:1px; height:24px; background:#1a1a2a;"></div>
+
+  <!-- Reverb -->
+  <div class="ess-group" style="display:flex; align-items:center; gap:6px; padding:2px 6px; border:1px solid #1a1a2a; border-radius:4px;">
+    <span class="ess-label" style="font-size:9px; color:#666; text-transform:uppercase; letter-spacing:1px; white-space:nowrap;">Reverb</span>
+    <div style="display:flex; align-items:center; gap:4px;">
+      <input type="range" id="ess-reverb" min="0" max="1" step="0.01" value="0.15" oninput="document.getElementById('reverb').value=this.value; document.getElementById('s-reverb').value=this.value; document.getElementById('reverb').dispatchEvent(new Event('input')); updateStripVal('s-reverb'); document.getElementById('ess-reverb-val').textContent=Math.round(this.value*100)+'%';" style="width:70px; -webkit-appearance:none; height:3px; background:#1a1a2a; border-radius:2px; outline:none;">
+      <span class="ess-val" id="ess-reverb-val" style="font-size:10px; color:#c8a44e; font-weight:bold; min-width:30px;">15%</span>
+    </div>
+  </div>
 </div>
 
 <!-- HORIZONTAL CONTROL STRIP -->
@@ -1135,6 +1208,11 @@
 
 <div id="piano-container">
   <div id="piano"></div>
+</div>
+
+<!-- ===== DEEP DIVE TOGGLE (below keyboard) ===== -->
+<div id="deep-dive-bar" style="display:flex; align-items:center; justify-content:center; padding:6px 20px; background:#0b0b14; border-top:1px solid #1a1a2a; flex-shrink:0; z-index:10;">
+  <button class="deep-dive-btn" id="deep-dive-toggle" onclick="toggleDeepDive()" style="background:#1a1a2a; border:1px solid #2a2a3a; color:#888; padding:6px 20px; font-size:11px; font-family:'Courier New',monospace; cursor:pointer; border-radius:4px; letter-spacing:2px;">⚙ Deep Dive</button>
 </div>
 
 <script>
@@ -4010,45 +4088,9 @@ const MODE_PRESETS = {
       reverb: 0.15, width: 0.2, warmth: 0, seq: 'fibonacci'
     },
     harmonicsOn: false,
-    quantizeMode: 'echo-snap',
+    quantizeMode: 'free',
     noteMode: 'ripple'
   },
-  'bell': {
-    label: '🔔 Bell',
-    params: {
-      attack: 3, adsrDecay: 150, sustain: 0.1, release: 2000,
-      decay: 0.618, echoes: 7, drift: 0.2, gap: 120,
-      depth: 5, bloom: 0.5, predelay: 80, sym: 0.2,
-      reverb: 0.3, width: 0.3, warmth: 0.1, seq: 'fibonacci'
-    },
-    harmonicsOn: true,
-    quantizeMode: 'echo-snap',
-    noteMode: 'harmonic-bloom'
-  },
-  'singing-bowl': {
-    label: '🕉 Singing Bowl',
-    params: {
-      attack: 80, adsrDecay: 600, sustain: 0.6, release: 3500,
-      decay: 0.7, echoes: 5, drift: 0.15, gap: 300,
-      depth: 6, bloom: 0.4, predelay: 250, sym: 0.5,
-      reverb: 0.5, width: 0.3, warmth: 0.5, seq: 'fibonacci'
-    },
-    harmonicsOn: true,
-    quantizeMode: 'echo-snap',
-    noteMode: 'ripple'
-  },
-  'deep-space': {
-    label: '🌌 Deep Space',
-    params: {
-      attack: 120, adsrDecay: 700, sustain: 0.5, release: 5000,
-      decay: 0.78, echoes: 8, drift: 0.7, gap: 500,
-      depth: 3, bloom: 0.2, predelay: 300, sym: 0.6,
-      reverb: 0.9, width: 0.5, warmth: 0.7, seq: 'golden'
-    },
-    harmonicsOn: true,
-    quantizeMode: 'echo-snap',
-    noteMode: 'ripple'
-  }
 };
 
 let currentModePreset = null;
@@ -4176,38 +4218,75 @@ loadCustomModes();
 // free: no quantization at all
 // echo-snap: note plays immediately, echo cascade snaps to fibonacci grid
 // hard: existing behavior (blocks note until grid point)
-let currentQuantizeMode = 'echo-snap';
+let currentQuantizeMode = 'free';
 
 function setQuantizeMode(mode) {
   currentQuantizeMode = mode;
-  document.querySelectorAll('.q-toggle').forEach(b => b.classList.remove('active'));
-  const btn = document.getElementById('q-' + mode);
-  if (btn) btn.classList.add('active');
+  // Only highlight q-toggle buttons that are quantize mode buttons (not gap timing)
+  ['q-off', 'q-free', 'q-echo-snap', 'q-hard'].forEach(id => {
+    const b = document.getElementById(id);
+    if (b) b.classList.toggle('active', id === 'q-' + mode);
+  });
 
-  // Sync the old quantize toggle
+  // Sync the old quantize toggle for hard mode
   if (mode === 'hard') {
     if (!quantizeEnabled) toggleQuantize();
   } else {
     if (quantizeEnabled) toggleQuantize();
   }
-  // Also sync the strip quantize button
   const sBtn = document.getElementById('s-btn-quantize');
   if (sBtn) sBtn.classList.toggle('active', mode === 'hard');
 }
 
-// Override triggerRipple to respect echo-snap mode
-// We patch the quantize logic — in echo-snap mode, the note fires immediately
-// but echo scheduling snaps to the bloom grid
+// Override triggerRipple to implement all 4 quantize modes properly
 const _originalTriggerRipple = triggerRipple;
 triggerRipple = function(freq, noteName, midi) {
-  if (currentQuantizeMode === 'echo-snap' && bloomGrid.length > 0) {
-    // Note plays immediately (no delay), but we rebuild the bloom grid
-    // so future echoes align. The existing triggerRipple with quantizeEnabled=false
-    // handles this — we just need to snap the gap timing.
-    // For echo-snap, we adjust the gap to align with the nearest grid point
-    _originalTriggerRipple(freq, noteName, midi);
+  // OFF mode: pure instrument, equal-spaced echoes, no Fibonacci math
+  if (currentQuantizeMode === 'off') {
+    initAudio();
+    const params = getParams();
+    const now = audioCtx.currentTime + 0.01; // tiny offset to avoid clicks
+    const equalGap = params.gap / 1000; // use gap as fixed interval
+    
+    // Schedule echoes with equal spacing
+    let time = now;
+    for (let i = 0; i <= params.echoes; i++) {
+      const amp = 0.3 * Math.pow(params.decay, i);
+      playTone(freq, time, amp, i, params);
+      time += equalGap;
+    }
+    
+    // Visual ripple with equal gaps
+    const equalGaps = Array(params.echoes).fill(equalGap);
+    const _pos = _vizNotePosition(freq, midi);
+    activeRipples.push({
+      x: _pos.x, y: _pos.y, freq, noteName,
+      startTime: performance.now(), params: { ...params }, gaps: equalGaps,
+      echoes: params.echoes,
+    });
+    
+    // Update info display
+    document.getElementById('info-note').className = 'active';
+    document.getElementById('info-note').textContent = `♪ ${noteName} (${freq.toFixed(1)}Hz)`;
+    document.getElementById('info-echo').className = 'active';
+    document.getElementById('info-echo').textContent = `Echoes: ${params.echoes} @ φ=${params.decay.toFixed(3)} (equal spacing)`;
+    document.getElementById('info-harmonics').className = 'active';
+    document.getElementById('info-harmonics').textContent = `Gap: ${params.gap}ms × ${params.echoes} echoes`;
     return;
   }
+  
+  // Free mode: note plays IMMEDIATELY, echoes follow Fibonacci timing
+  // Echo Snap: same as Free (note immediate, echoes in Fibonacci time, grid rebuilt from this note)
+  if (currentQuantizeMode === 'free' || currentQuantizeMode === 'echo-snap') {
+    // Force quantizeEnabled OFF so the original function won't delay the initial note
+    const wasEnabled = quantizeEnabled;
+    quantizeEnabled = false;
+    _originalTriggerRipple(freq, noteName, midi);
+    quantizeEnabled = wasEnabled;
+    return;
+  }
+  
+  // Hard mode: existing behavior — note waits for Fibonacci grid point
   _originalTriggerRipple(freq, noteName, midi);
 };
 
@@ -4221,12 +4300,10 @@ function toggleDeepDive() {
 
   if (deepDiveOpen) {
     strip.classList.remove('collapsed');
-    btn.classList.add('active');
-    btn.textContent = '⚙ Deep Dive ▲';
+    if (btn) { btn.style.background = 'rgba(200,164,78,0.1)'; btn.style.borderColor = '#c8a44e'; btn.style.color = '#c8a44e'; btn.textContent = '⚙ Deep Dive ▲'; }
   } else {
     strip.classList.add('collapsed');
-    btn.classList.remove('active');
-    btn.textContent = '⚙ Deep Dive';
+    if (btn) { btn.style.background = '#1a1a2a'; btn.style.borderColor = '#2a2a3a'; btn.style.color = '#888'; btn.textContent = '⚙ Deep Dive'; }
   }
 }
 
@@ -4285,11 +4362,85 @@ syncEssentials = function() {
   if (activeBtn) activeBtn.classList.add('active');
 };
 
+// ========== PLAYER / GEN TAB SWITCHING ==========
+let currentTab = 'player';
+
+function switchTab(tab) {
+  currentTab = tab;
+  const playerBtn = document.getElementById('tab-player');
+  const genBtn = document.getElementById('tab-gen');
+  const genControls = document.getElementById('gen-tab-controls');
+  
+  if (tab === 'player') {
+    playerBtn.style.borderBottomColor = '#c8a44e';
+    playerBtn.style.color = '#c8a44e';
+    genBtn.style.borderBottomColor = 'transparent';
+    genBtn.style.color = '#555';
+    genControls.style.display = 'none';
+    // Stop generative if running
+    if (genActive) toggleGenerative();
+  } else {
+    genBtn.style.borderBottomColor = '#c8a44e';
+    genBtn.style.color = '#c8a44e';
+    playerBtn.style.borderBottomColor = 'transparent';
+    playerBtn.style.color = '#555';
+    genControls.style.display = 'flex';
+  }
+}
+
+// Sync gen tab play button state with genActive
+const _origToggleGen = toggleGenerative;
+toggleGenerative = function() {
+  _origToggleGen();
+  const gtb = document.getElementById('gen-tab-play');
+  if (gtb) {
+    if (genActive) {
+      gtb.textContent = '⏹ STOP';
+      gtb.style.background = '#c8a44e';
+      gtb.style.color = '#0a0a0f';
+    } else {
+      gtb.textContent = '▶ START';
+      gtb.style.background = '#1a1a2a';
+      gtb.style.color = '#c8a44e';
+    }
+  }
+};
+
+// ========== ESSENTIALS ↔ DEEP DIVE SYNC ==========
+// Sync essentials gap slider with deep dive / original params
+function syncEssentialsGap() {
+  const essGap = document.getElementById('ess-gap');
+  const mainGap = document.getElementById('gap');
+  if (essGap && mainGap) {
+    essGap.value = mainGap.value;
+    const valEl = document.getElementById('ess-gap-val');
+    if (valEl) valEl.textContent = mainGap.value + 'ms';
+  }
+  const essReverb = document.getElementById('ess-reverb');
+  const mainReverb = document.getElementById('reverb');
+  if (essReverb && mainReverb) {
+    essReverb.value = mainReverb.value;
+    const valEl = document.getElementById('ess-reverb-val');
+    if (valEl) valEl.textContent = Math.round(mainReverb.value * 100) + '%';
+  }
+}
+
+// Hook into syncStripFromOriginal to also sync essentials gap/reverb
+const _origSyncStripFull = syncStripFromOriginal;
+syncStripFromOriginal = function() {
+  _origSyncStripFull();
+  syncEssentialsGap();
+};
+
 // Auto-load Pure Sine on startup
 loadModePreset('pure-sine');
 
 // Initial sync
 syncEssentials();
+syncEssentialsGap();
+
+// Set initial quantize mode to Free
+setQuantizeMode('free');
 </script>
 </body>
 </html>
