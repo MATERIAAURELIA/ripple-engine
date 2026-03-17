@@ -4284,27 +4284,29 @@ const _originalTriggerRipple = triggerRipple;
 triggerRipple = function(freq, noteName, midi, velocity) {
   velocity = velocity || 127;
   const velGainQ = velocityToGain(velocity);
-  // OFF mode: pure instrument, equal-spaced echoes, no Fibonacci math
+  // OFF mode: pure instrument, no Fibonacci quantize grid — but RESPECTS the gap pattern setting
   if (currentQuantizeMode === 'off') {
     initAudio();
     const params = getParams();
     const now = audioCtx.currentTime + 0.01; // tiny offset to avoid clicks
-    const equalGap = params.gap / 1000; // use gap as fixed interval
+    const baseGap = params.gap / 1000;
     
-    // Schedule echoes with equal spacing
+    // Use the selected gap pattern (FIB/GOLD/LOG/LIN) — gap pattern is independent of quantize mode
+    const gapSequence = getGapSequence(baseGap, params.echoes, currentSeqMode);
+    
+    // Schedule echoes using the gap pattern
     let time = now;
     for (let i = 0; i <= params.echoes; i++) {
       const amp = 0.3 * velGainQ * Math.pow(params.decay, i);
       playTone(freq, time, amp, i, params);
-      time += equalGap;
+      if (i < gapSequence.length) time += gapSequence[i];
     }
     
-    // Visual ripple with equal gaps
-    const equalGaps = Array(params.echoes).fill(equalGap);
+    // Visual ripple with gap pattern
     const _pos = _vizNotePosition(freq, midi);
     activeRipples.push({
       x: _pos.x, y: _pos.y, freq, noteName,
-      startTime: performance.now(), params: { ...params }, gaps: equalGaps,
+      startTime: performance.now(), params: { ...params }, gaps: gapSequence,
       echoes: params.echoes,
     });
     
@@ -4312,9 +4314,9 @@ triggerRipple = function(freq, noteName, midi, velocity) {
     document.getElementById('info-note').className = 'active';
     document.getElementById('info-note').textContent = `♪ ${noteName} (${freq.toFixed(1)}Hz)`;
     document.getElementById('info-echo').className = 'active';
-    document.getElementById('info-echo').textContent = `Echoes: ${params.echoes} @ φ=${params.decay.toFixed(3)} (equal spacing)`;
+    document.getElementById('info-echo').textContent = `Echoes: ${params.echoes} @ φ=${params.decay.toFixed(3)} (${currentSeqMode})`;
     document.getElementById('info-harmonics').className = 'active';
-    document.getElementById('info-harmonics').textContent = `Gap: ${params.gap}ms × ${params.echoes} echoes`;
+    document.getElementById('info-harmonics').textContent = `Gap: ${params.gap}ms × ${params.echoes} echoes (${currentSeqMode})`;
     return;
   }
   
