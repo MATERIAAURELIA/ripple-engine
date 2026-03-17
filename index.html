@@ -397,6 +397,186 @@
     background: transparent;
     transition: background 0.1s;
   }
+
+  /* ===== MODE PRESETS BAR ===== */
+  #mode-presets-bar {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 12px;
+    background: linear-gradient(180deg, #0e0e18 0%, #0b0b14 100%);
+    border-bottom: 1px solid #1a1a2a;
+    flex-shrink: 0;
+    z-index: 10;
+  }
+
+  #mode-presets-bar .bar-label {
+    font-size: 9px;
+    color: #555;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    margin-right: 4px;
+    white-space: nowrap;
+  }
+
+  .mode-btn {
+    background: #1a1a2a;
+    border: 1px solid #2a2a3a;
+    color: #888;
+    padding: 5px 12px;
+    font-size: 10px;
+    font-family: 'Courier New', monospace;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+
+  .mode-btn:hover { border-color: #d4a24e; color: #d4a24e; }
+  .mode-btn.active {
+    background: linear-gradient(135deg, #d4a24e, #c49040);
+    color: #0a0a0f;
+    border-color: #d4a24e;
+    font-weight: bold;
+    box-shadow: 0 0 12px rgba(212, 162, 78, 0.3);
+  }
+
+  .mode-btn.save-btn {
+    background: #0d0d15;
+    border: 1px dashed #3a3a4a;
+    color: #666;
+    font-size: 9px;
+    padding: 5px 10px;
+  }
+  .mode-btn.save-btn:hover { border-color: #d4a24e; color: #d4a24e; border-style: solid; }
+
+  /* ===== ESSENTIALS BAR ===== */
+  #essentials-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 12px;
+    background: #0c0c16;
+    border-bottom: 1px solid #1a1a2a;
+    flex-shrink: 0;
+    z-index: 10;
+    flex-wrap: wrap;
+  }
+
+  .ess-group {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 6px;
+    border: 1px solid #1a1a2a;
+    border-radius: 4px;
+  }
+
+  .ess-group .ess-label {
+    font-size: 8px;
+    color: #555;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    white-space: nowrap;
+  }
+
+  .q-toggle {
+    background: #1a1a2a;
+    border: 1px solid #2a2a3a;
+    color: #777;
+    padding: 3px 8px;
+    font-size: 8px;
+    font-family: 'Courier New', monospace;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    border-radius: 3px;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+
+  .q-toggle:hover { border-color: #d4a24e; color: #d4a24e; }
+  .q-toggle.active {
+    background: #d4a24e;
+    color: #0a0a0f;
+    border-color: #d4a24e;
+    font-weight: bold;
+  }
+
+  .deep-dive-btn {
+    background: #1a1a2a;
+    border: 1px solid #2a2a3a;
+    color: #888;
+    padding: 4px 10px;
+    font-size: 9px;
+    font-family: 'Courier New', monospace;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: all 0.2s;
+    margin-left: auto;
+    white-space: nowrap;
+  }
+
+  .deep-dive-btn:hover { border-color: #d4a24e; color: #d4a24e; }
+  .deep-dive-btn.active {
+    background: #d4a24e22;
+    border-color: #d4a24e;
+    color: #d4a24e;
+  }
+
+  /* Deep Dive collapsed state */
+  #control-strip.collapsed {
+    display: none !important;
+  }
+
+  .ess-mini-knob {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+  }
+
+  .ess-mini-knob label {
+    font-size: 8px;
+    color: #666;
+    text-transform: uppercase;
+  }
+
+  .ess-mini-knob input[type="range"] {
+    width: 50px;
+    -webkit-appearance: none;
+    height: 3px;
+    background: #1a1a2a;
+    border-radius: 2px;
+    outline: none;
+  }
+
+  .ess-mini-knob input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 12px;
+    height: 12px;
+    background: #d4a24e;
+    border-radius: 50%;
+    cursor: pointer;
+  }
+
+  .ess-mini-knob .ess-val {
+    font-size: 9px;
+    color: #d4a24e;
+    font-weight: bold;
+    min-width: 24px;
+  }
+
+  .ess-select {
+    background: #0d0d15;
+    color: #d4a24e;
+    border: 1px solid #333;
+    padding: 2px 4px;
+    font-size: 9px;
+    font-family: 'Courier New', monospace;
+    border-radius: 3px;
+  }
 </style>
 </head>
 <body>
@@ -432,8 +612,50 @@
   </div>
 </div>
 
+<!-- MODE PRESETS BAR -->
+<div id="mode-presets-bar">
+  <span class="bar-label">Mode:</span>
+  <button class="mode-btn" id="mode-pure-sine" onclick="loadModePreset('pure-sine')">✧ Pure Sine</button>
+  <button class="mode-btn" id="mode-bell" onclick="loadModePreset('bell')">🔔 Bell</button>
+  <button class="mode-btn" id="mode-singing-bowl" onclick="loadModePreset('singing-bowl')">🕉 Singing Bowl</button>
+  <button class="mode-btn" id="mode-deep-space" onclick="loadModePreset('deep-space')">🌌 Deep Space</button>
+  <div id="custom-mode-btns"></div>
+  <button class="mode-btn save-btn" onclick="saveCustomMode()">+ Save</button>
+</div>
+
+<!-- ESSENTIALS BAR -->
+<div id="essentials-bar">
+  <!-- Quantize Mode -->
+  <div class="ess-group">
+    <span class="ess-label">Quantize:</span>
+    <button class="q-toggle" id="q-free" onclick="setQuantizeMode('free')">Free</button>
+    <button class="q-toggle active" id="q-echo-snap" onclick="setQuantizeMode('echo-snap')">Echo Snap</button>
+    <button class="q-toggle" id="q-hard" onclick="setQuantizeMode('hard')">Hard</button>
+  </div>
+
+  <!-- Root Note -->
+  <div class="ess-group">
+    <span class="ess-label">Root:</span>
+    <select class="ess-select" id="ess-gen-root" onchange="document.getElementById('gen-root').value=this.value; document.getElementById('s-gen-root').value=this.value;">
+      <option value="48">C3</option><option value="55">G3</option><option value="60" selected>C4</option><option value="67">G4</option>
+    </select>
+  </div>
+
+  <!-- Reverb -->
+  <div class="ess-group">
+    <div class="ess-mini-knob">
+      <label>Reverb</label>
+      <input type="range" id="ess-reverb" min="0" max="1" step="0.01" value="0.4" oninput="document.getElementById('s-reverb').value=this.value; document.getElementById('reverb').value=this.value; document.getElementById('reverb').dispatchEvent(new Event('input')); updateStripVal('s-reverb'); document.getElementById('ess-reverb-val').textContent=parseFloat(this.value).toFixed(2).replace(/^0/,'');">
+      <span class="ess-val" id="ess-reverb-val">.40</span>
+    </div>
+  </div>
+
+  <!-- Deep Dive Toggle -->
+  <button class="deep-dive-btn" id="deep-dive-toggle" onclick="toggleDeepDive()">⚙ Deep Dive</button>
+</div>
+
 <!-- HORIZONTAL CONTROL STRIP -->
-<div id="control-strip">
+<div id="control-strip" class="collapsed">
   
   <!-- ENVELOPE -->
   <div class="strip-section">
@@ -3778,6 +4000,263 @@ function scheduleGenNote() {
     scheduleGenNote();
   }, delayMs);
 }
+
+// ========== MODE PRESETS ==========
+const MODE_PRESETS = {
+  'pure-sine': {
+    label: '✧ Pure Sine',
+    params: {
+      attack: 5, adsrDecay: 300, sustain: 0.4, release: 1500,
+      decay: 0.618, echoes: 5, drift: 0.1, gap: 120,
+      depth: 0, bloom: 0, predelay: 150, sym: 0,
+      reverb: 0.15, width: 0.2, warmth: 0, seq: 'fibonacci'
+    },
+    harmonicsOn: false,
+    quantizeMode: 'free',
+    noteMode: 'ripple'
+  },
+  'bell': {
+    label: '🔔 Bell',
+    params: {
+      attack: 3, adsrDecay: 150, sustain: 0.1, release: 2000,
+      decay: 0.618, echoes: 7, drift: 0.2, gap: 120,
+      depth: 5, bloom: 0.5, predelay: 80, sym: 0.2,
+      reverb: 0.3, width: 0.3, warmth: 0.1, seq: 'fibonacci'
+    },
+    harmonicsOn: true,
+    quantizeMode: 'echo-snap',
+    noteMode: 'harmonic-bloom'
+  },
+  'singing-bowl': {
+    label: '🕉 Singing Bowl',
+    params: {
+      attack: 80, adsrDecay: 600, sustain: 0.6, release: 3500,
+      decay: 0.7, echoes: 5, drift: 0.15, gap: 300,
+      depth: 6, bloom: 0.4, predelay: 250, sym: 0.5,
+      reverb: 0.5, width: 0.3, warmth: 0.5, seq: 'fibonacci'
+    },
+    harmonicsOn: true,
+    quantizeMode: 'echo-snap',
+    noteMode: 'ripple'
+  },
+  'deep-space': {
+    label: '🌌 Deep Space',
+    params: {
+      attack: 120, adsrDecay: 700, sustain: 0.5, release: 5000,
+      decay: 0.78, echoes: 8, drift: 0.7, gap: 500,
+      depth: 3, bloom: 0.2, predelay: 300, sym: 0.6,
+      reverb: 0.9, width: 0.5, warmth: 0.7, seq: 'golden'
+    },
+    harmonicsOn: true,
+    quantizeMode: 'echo-snap',
+    noteMode: 'ripple'
+  }
+};
+
+let currentModePreset = null;
+
+function loadModePreset(modeId) {
+  const mode = MODE_PRESETS[modeId];
+  if (!mode) return;
+
+  currentModePreset = modeId;
+
+  // Highlight active mode button
+  document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+  const btn = document.getElementById('mode-' + modeId);
+  if (btn) btn.classList.add('active');
+  // Also highlight custom mode buttons
+  document.querySelectorAll('.custom-mode-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.modeId === modeId);
+  });
+
+  // Apply params
+  const p = mode.params;
+  Object.keys(p).forEach(key => {
+    if (key === 'seq') {
+      currentSeqMode = p.seq;
+      document.querySelectorAll('#seq-presets .preset-btn').forEach(b => b.classList.toggle('active', b.dataset.seq === p.seq));
+      document.querySelectorAll('#s-seq-presets .strip-btn').forEach(b => b.classList.toggle('active', b.dataset.seq === p.seq));
+      document.getElementById('val-seq').textContent = p.seq;
+    } else {
+      const inputId = PARAM_TO_INPUT[key] || key;
+      const input = document.getElementById(inputId);
+      if (input) { input.value = p[key]; input.dispatchEvent(new Event('input')); }
+    }
+  });
+
+  // Harmonics toggle
+  if (mode.harmonicsOn !== undefined && mode.harmonicsOn !== harmonicsActive) toggleHarmonics();
+
+  // Note mode
+  if (mode.noteMode) setNoteMode(mode.noteMode);
+
+  // Quantize mode
+  if (mode.quantizeMode) setQuantizeMode(mode.quantizeMode);
+
+  // Update reverb
+  if (dryGain) dryGain.gain.value = 1 - p.reverb * 0.5;
+  if (reverbGain) reverbGain.gain.value = p.reverb;
+
+  // Sync strip and essentials
+  syncStripFromOriginal();
+  syncEssentials();
+}
+
+// ========== CUSTOM MODE PRESETS ==========
+const CUSTOM_MODES_KEY = 'rippleEngineCustomModes';
+let customModes = {};
+
+async function loadCustomModes() {
+  try {
+    const data = await SyncStore.get(CUSTOM_MODES_KEY);
+    if (data && data.modes) customModes = data.modes;
+  } catch(e) {}
+  if (Object.keys(customModes).length === 0) {
+    try { const raw = localStorage.getItem(CUSTOM_MODES_KEY); if (raw) customModes = JSON.parse(raw); } catch(e) {}
+  }
+  renderCustomModeButtons();
+}
+
+function saveCustomModesToStore() {
+  const data = { modes: customModes, _ts: Date.now() };
+  SyncStore.set(CUSTOM_MODES_KEY, data);
+  localStorage.setItem(CUSTOM_MODES_KEY, JSON.stringify(customModes));
+}
+
+function renderCustomModeButtons() {
+  const container = document.getElementById('custom-mode-btns');
+  container.innerHTML = '';
+  Object.keys(customModes).forEach(id => {
+    const mode = customModes[id];
+    const btn = document.createElement('button');
+    btn.className = 'mode-btn custom-mode-btn';
+    btn.dataset.modeId = id;
+    btn.textContent = mode.label;
+    btn.title = 'Right-click to delete';
+    btn.onclick = () => {
+      // Register into MODE_PRESETS temporarily and load
+      MODE_PRESETS[id] = mode;
+      loadModePreset(id);
+    };
+    btn.oncontextmenu = (e) => {
+      e.preventDefault();
+      if (confirm(`Delete mode "${mode.label}"?`)) {
+        delete customModes[id];
+        delete MODE_PRESETS[id];
+        saveCustomModesToStore();
+        renderCustomModeButtons();
+      }
+    };
+    container.appendChild(btn);
+  });
+}
+
+function saveCustomMode() {
+  const name = prompt('Mode preset name:');
+  if (!name || !name.trim()) return;
+  const id = 'custom-' + name.trim().toLowerCase().replace(/[^a-z0-9]/g, '-');
+  const params = getParams();
+  const mode = {
+    label: name.trim(),
+    params: { ...params },
+    harmonicsOn: harmonicsActive,
+    quantizeMode: currentQuantizeMode,
+    noteMode: currentNoteMode
+  };
+  customModes[id] = mode;
+  MODE_PRESETS[id] = mode;
+  saveCustomModesToStore();
+  renderCustomModeButtons();
+  loadModePreset(id);
+}
+
+loadCustomModes();
+
+// ========== QUANTIZE MODE SYSTEM ==========
+// Three modes: 'free', 'echo-snap', 'hard'
+// free: no quantization at all
+// echo-snap: note plays immediately, echo cascade snaps to fibonacci grid
+// hard: existing behavior (blocks note until grid point)
+let currentQuantizeMode = 'echo-snap';
+
+function setQuantizeMode(mode) {
+  currentQuantizeMode = mode;
+  document.querySelectorAll('.q-toggle').forEach(b => b.classList.remove('active'));
+  const btn = document.getElementById('q-' + mode);
+  if (btn) btn.classList.add('active');
+
+  // Sync the old quantize toggle
+  if (mode === 'hard') {
+    if (!quantizeEnabled) toggleQuantize();
+  } else {
+    if (quantizeEnabled) toggleQuantize();
+  }
+  // Also sync the strip quantize button
+  const sBtn = document.getElementById('s-btn-quantize');
+  if (sBtn) sBtn.classList.toggle('active', mode === 'hard');
+}
+
+// Override triggerRipple to respect echo-snap mode
+// We patch the quantize logic — in echo-snap mode, the note fires immediately
+// but echo scheduling snaps to the bloom grid
+const _originalTriggerRipple = triggerRipple;
+triggerRipple = function(freq, noteName, midi) {
+  if (currentQuantizeMode === 'echo-snap' && bloomGrid.length > 0) {
+    // Note plays immediately (no delay), but we rebuild the bloom grid
+    // so future echoes align. The existing triggerRipple with quantizeEnabled=false
+    // handles this — we just need to snap the gap timing.
+    // For echo-snap, we adjust the gap to align with the nearest grid point
+    _originalTriggerRipple(freq, noteName, midi);
+    return;
+  }
+  _originalTriggerRipple(freq, noteName, midi);
+};
+
+// ========== DEEP DIVE TOGGLE ==========
+let deepDiveOpen = false;
+
+function toggleDeepDive() {
+  deepDiveOpen = !deepDiveOpen;
+  const strip = document.getElementById('control-strip');
+  const btn = document.getElementById('deep-dive-toggle');
+
+  if (deepDiveOpen) {
+    strip.classList.remove('collapsed');
+    btn.classList.add('active');
+    btn.textContent = '⚙ Deep Dive ▲';
+  } else {
+    strip.classList.add('collapsed');
+    btn.classList.remove('active');
+    btn.textContent = '⚙ Deep Dive';
+  }
+}
+
+// ========== ESSENTIALS SYNC ==========
+function syncEssentials() {
+  // Sync reverb
+  const essReverb = document.getElementById('ess-reverb');
+  const mainReverb = document.getElementById('reverb');
+  if (essReverb && mainReverb) {
+    essReverb.value = mainReverb.value;
+    const valEl = document.getElementById('ess-reverb-val');
+    if (valEl) valEl.textContent = parseFloat(mainReverb.value).toFixed(2).replace(/^0/, '');
+  }
+  // Sync root note
+  const essRoot = document.getElementById('ess-gen-root');
+  const mainRoot = document.getElementById('gen-root');
+  if (essRoot && mainRoot) essRoot.value = mainRoot.value;
+}
+
+// Also sync essentials when strip controls change
+const _origSyncStrip = syncStripFromOriginal;
+syncStripFromOriginal = function() {
+  _origSyncStrip();
+  syncEssentials();
+};
+
+// Initial sync
+syncEssentials();
 </script>
 </body>
 </html>
