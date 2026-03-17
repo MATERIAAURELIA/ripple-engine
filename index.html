@@ -2651,7 +2651,7 @@ if (navigator.requestMIDIAccess) {
               window._midiCount++;
               document.getElementById('s-midi-status').textContent = `#${window._midiCount}: ${name} ch${ch} [${inputName}]`;
               document.getElementById('s-midi-status').style.color = '#4a4';
-              noteOn(data1, name, null);
+              noteOn(data1, name, null, data2);
             }
           }
           // CC — route to Ripple Engine parameters
