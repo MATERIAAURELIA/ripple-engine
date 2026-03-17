@@ -723,6 +723,14 @@
       <span class="ess-val" id="ess-reverb-val" style="font-size:10px; color:#c8a44e; font-weight:bold; min-width:30px;">15%</span>
     </div>
   </div>
+
+  <!-- Separator -->
+  <div style="width:1px; height:24px; background:#1a1a2a;"></div>
+
+  <!-- Velocity -->
+  <div class="ess-group" style="display:flex; align-items:center; gap:3px;">
+    <button class="q-toggle" id="vel-toggle" onclick="toggleVelocity()">VEL OFF</button>
+  </div>
 </div>
 
 <!-- HORIZONTAL CONTROL STRIP -->
@@ -1216,6 +1224,34 @@
 </div>
 
 <script>
+// ========== VELOCITY SENSITIVITY ==========
+let velocityEnabled = false;
+
+function toggleVelocity() {
+  velocityEnabled = !velocityEnabled;
+  const btn = document.getElementById('vel-toggle');
+  if (btn) {
+    btn.textContent = velocityEnabled ? 'VEL ON' : 'VEL OFF';
+    btn.classList.toggle('active', velocityEnabled);
+  }
+}
+
+// Calculate velocity from click/touch Y position relative to key element
+// Top of key = soft (~40), bottom = loud (~127), middle = medium (~80)
+function getVelocityFromEvent(e, keyEl) {
+  if (!velocityEnabled) return 127; // default: full velocity
+  const rect = keyEl.getBoundingClientRect();
+  const relY = (e.clientY || (e.touches && e.touches[0].clientY) || rect.top) - rect.top;
+  const pct = Math.max(0, Math.min(1, relY / rect.height)); // 0=top, 1=bottom
+  // Map: top(0) → velocity 40, bottom(1) → velocity 127
+  return Math.round(40 + pct * 87);
+}
+
+// Map MIDI velocity (0-127) to gain multiplier (0.3 to 1.0)
+function velocityToGain(velocity) {
+  return 0.3 + (velocity / 127) * 0.7;
+}
+
 // ========== AUDIO ENGINE ==========
 let audioCtx = null;
 let masterGain = null;
@@ -1719,8 +1755,10 @@ function playTone(freq, time, amplitude, echoIndex, params) {
 // ========== RIPPLE ENGINE ==========
 const activeRipples = [];
 
-function triggerRipple(freq, noteName, midi) {
+function triggerRipple(freq, noteName, midi, velocity) {
   initAudio();
+  velocity = velocity || 127; // default full velocity
+  const velGain = velocityToGain(velocity);
   
   const params = getParams();
   let now = audioCtx.currentTime;
@@ -1754,7 +1792,7 @@ function triggerRipple(freq, noteName, midi) {
     for (let i = 0; i < activeHarmonics.length; i++) {
       const harmonicNum = activeHarmonics[i];
       const harmonicFreq = freq * harmonicNum;
-      const amp = 0.3 * Math.pow(params.decay, i);
+      const amp = 0.3 * velGain * Math.pow(params.decay, i);
       
       // Play with slightly modified params for each harmonic
       const hParams = { ...params };
@@ -1806,13 +1844,13 @@ function triggerRipple(freq, noteName, midi) {
       // MODE 1: Each note spawns its own complete polyrhythm
       // Voice A: the played note echoes on ratioA grid
       for (let i = 0; i < ratioA; i++) {
-        const amp = 0.3 * Math.pow(params.decay, i);
+        const amp = 0.3 * velGain * Math.pow(params.decay, i);
         playTone(freq, now + hitsA[i], amp, i, params);
         ((idx, delay) => setTimeout(() => flashPolyDot('a', idx), delay * 1000))(i, hitsA[i]);
       }
       // Voice B: same note, offset timing on ratioB grid, slightly quieter
       for (let i = 0; i < ratioB; i++) {
-        const amp = 0.22 * Math.pow(params.decay, i);
+        const amp = 0.22 * velGain * Math.pow(params.decay, i);
         playTone(freq, now + hitsB[i], amp, i, params);
         ((idx, delay) => setTimeout(() => flashPolyDot('b', idx), delay * 1000))(i, hitsB[i]);
       }
@@ -1845,7 +1883,7 @@ function triggerRipple(freq, noteName, midi) {
         const idx = (startIdx + i) % remainingHits.length;
         let t = remainingHits[idx] - nextSlot.t;
         if (t < 0) t += cycleSec;
-        const amp = 0.3 * Math.pow(params.decay, i);
+        const amp = 0.3 * velGain * Math.pow(params.decay, i);
         playTone(freq, now + delay + t, amp, i, params);
         ((v, dotIdx, d) => setTimeout(() => flashPolyDot(v, dotIdx), (delay + d) * 1000))(voiceLetter, idx, t);
       }
@@ -1860,7 +1898,7 @@ function triggerRipple(freq, noteName, midi) {
       // Echo the note through the chosen side's grid
       const voiceLtr = isA ? 'a' : 'b';
       for (let i = 0; i < hits.length; i++) {
-        const amp = 0.3 * Math.pow(params.decay, i);
+        const amp = 0.3 * velGain * Math.pow(params.decay, i);
         playTone(freq, now + hits[i], amp, i, params);
         ((v, idx, d) => setTimeout(() => flashPolyDot(v, idx), d * 1000))(voiceLtr, i, hits[i]);
       }
@@ -1894,7 +1932,7 @@ function triggerRipple(freq, noteName, midi) {
     // Schedule all echoes
     let time = now;
     for (let i = 0; i <= params.echoes; i++) {
-      const amp = 0.3 * Math.pow(params.decay, i);
+      const amp = 0.3 * velGain * Math.pow(params.decay, i);
       playTone(freq, time, amp, i, params);
       
       if (i < params.echoes) {
@@ -2413,7 +2451,7 @@ function buildPiano() {
       label.textContent = NOTE_NAMES[note] + (note === 0 ? octave : '');
       key.appendChild(label);
       
-      key.addEventListener('mousedown', () => { noteOn(midi, name, key); });
+      key.addEventListener('mousedown', (e) => { const vel = getVelocityFromEvent(e, key); noteOn(midi, name, key, vel); });
       key.addEventListener('mouseup', () => { noteOff(midi); });
       key.addEventListener('mouseleave', () => { noteOff(midi); });
       
@@ -2436,7 +2474,7 @@ function buildPiano() {
       
       key.style.left = ((oct * 7 + BLACK_POSITIONS[bi]) * whiteWidth + whiteWidth / 2 - 11) + 'px';
       
-      key.addEventListener('mousedown', (e) => { e.stopPropagation(); noteOn(midi, name, key); });
+      key.addEventListener('mousedown', (e) => { e.stopPropagation(); const vel = getVelocityFromEvent(e, key); noteOn(midi, name, key, vel); });
       key.addEventListener('mouseup', () => { noteOff(midi); });
       key.addEventListener('mouseleave', () => { noteOff(midi); });
       
@@ -2449,18 +2487,19 @@ function buildPiano() {
 const heldNotes = {}; // midi -> { interval, count, keyEl, name }
 const PULSE_RAMP_MS = 80; // initial pulse speed (ms), slows with depth
 
-function noteOn(midi, name, keyEl) {
+function noteOn(midi, name, keyEl, velocity) {
   initAudio();
   if (keyEl) keyEl.classList.add('pressed');
   const freq = midiToFreq(midi);
+  velocity = velocity || 127;
   
   // Debug: show actual params being used
   const _p = getParams();
   const tc = document.getElementById('tone-counter');
-  if (tc) tc.textContent = `E:${_p.echoes} D:${_p.depth}`;
+  if (tc) tc.textContent = `E:${_p.echoes} D:${_p.depth}${velocityEnabled ? ' V:'+velocity : ''}`;
   
   // Immediate first trigger
-  triggerRipple(freq, name, midi);
+  triggerRipple(freq, name, midi, velocity);
   
   // Hold tracking (pulse disabled for now — isolating intentional sounds)
   if (!heldNotes[midi]) {
@@ -3401,9 +3440,9 @@ function drawSeqDisplay() {
 
 // Hook into noteOn to also record
 const originalNoteOn = noteOn;
-noteOn = function(midi, name, keyEl) {
+noteOn = function(midi, name, keyEl, velocity) {
   recordNote(midi, name);
-  originalNoteOn(midi, name, keyEl);
+  originalNoteOn(midi, name, keyEl, velocity);
 };
 
 // ========== AUTO-EVOLVE ENGINE ==========
@@ -3838,6 +3877,7 @@ function saveUserPreset() {
   params._noteMode = currentNoteMode;
   params._tuning = tuningMode;
   params._harmonicsOn = harmonicsActive;
+  params._velocityOn = velocityEnabled;
   userPresets[name.trim()] = params;
   saveUserPresetsToStore();
   renderUserPresetList();
@@ -3864,6 +3904,7 @@ function loadUserPreset(name) {
   if (p._genDensity) { const d = document.getElementById('gen-density'); if (d) d.value = p._genDensity; const sd = document.getElementById('s-gen-density'); if (sd) sd.value = p._genDensity; }
   if (p._genTiming) genTiming = p._genTiming;
   if (p._harmonicsOn !== undefined && p._harmonicsOn !== harmonicsActive) toggleHarmonics();
+  if (p._velocityOn !== undefined && p._velocityOn !== velocityEnabled) toggleVelocity();
   if (p._noteMode) setNoteMode(p._noteMode);
   // Sync strip
   if (typeof syncStripFromOriginal === 'function') syncStripFromOriginal();
@@ -4240,7 +4281,9 @@ function setQuantizeMode(mode) {
 
 // Override triggerRipple to implement all 4 quantize modes properly
 const _originalTriggerRipple = triggerRipple;
-triggerRipple = function(freq, noteName, midi) {
+triggerRipple = function(freq, noteName, midi, velocity) {
+  velocity = velocity || 127;
+  const velGainQ = velocityToGain(velocity);
   // OFF mode: pure instrument, equal-spaced echoes, no Fibonacci math
   if (currentQuantizeMode === 'off') {
     initAudio();
@@ -4251,7 +4294,7 @@ triggerRipple = function(freq, noteName, midi) {
     // Schedule echoes with equal spacing
     let time = now;
     for (let i = 0; i <= params.echoes; i++) {
-      const amp = 0.3 * Math.pow(params.decay, i);
+      const amp = 0.3 * velGainQ * Math.pow(params.decay, i);
       playTone(freq, time, amp, i, params);
       time += equalGap;
     }
@@ -4281,13 +4324,13 @@ triggerRipple = function(freq, noteName, midi) {
     // Force quantizeEnabled OFF so the original function won't delay the initial note
     const wasEnabled = quantizeEnabled;
     quantizeEnabled = false;
-    _originalTriggerRipple(freq, noteName, midi);
+    _originalTriggerRipple(freq, noteName, midi, velocity);
     quantizeEnabled = wasEnabled;
     return;
   }
   
   // Hard mode: existing behavior — note waits for Fibonacci grid point
-  _originalTriggerRipple(freq, noteName, midi);
+  _originalTriggerRipple(freq, noteName, midi, velocity);
 };
 
 // ========== DEEP DIVE TOGGLE ==========
