@@ -616,38 +616,36 @@
 <div id="mode-presets-bar">
   <span class="bar-label">Mode:</span>
   <button class="mode-btn" id="mode-pure-sine" onclick="loadModePreset('pure-sine')">✧ Pure Sine</button>
-  <button class="mode-btn" id="mode-bell" onclick="loadModePreset('bell')">🔔 Bell</button>
-  <button class="mode-btn" id="mode-singing-bowl" onclick="loadModePreset('singing-bowl')">🕉 Singing Bowl</button>
-  <button class="mode-btn" id="mode-deep-space" onclick="loadModePreset('deep-space')">🌌 Deep Space</button>
   <div id="custom-mode-btns"></div>
   <button class="mode-btn save-btn" onclick="saveCustomMode()">+ Save</button>
 </div>
 
 <!-- ESSENTIALS BAR -->
 <div id="essentials-bar">
+  <!-- Gap Timing -->
+  <div class="ess-group">
+    <span class="ess-label">Gap Timing:</span>
+    <button class="q-toggle active" id="ess-gap-fib" onclick="setEssGapTiming('fibonacci')">FIB</button>
+    <button class="q-toggle" id="ess-gap-gold" onclick="setEssGapTiming('golden')">GOLD</button>
+    <button class="q-toggle" id="ess-gap-lin" onclick="setEssGapTiming('linear')">LIN</button>
+    <button class="q-toggle" id="ess-gap-log" onclick="setEssGapTiming('log')">LOG</button>
+  </div>
+
+  <!-- Number of Echoes -->
+  <div class="ess-group">
+    <span class="ess-label">Echoes:</span>
+    <div class="ess-mini-knob">
+      <input type="range" id="ess-echoes" min="1" max="21" step="1" value="8" oninput="document.getElementById('echoes').value=this.value; document.getElementById('s-echoes').value=this.value; document.getElementById('echoes').dispatchEvent(new Event('input')); updateStripVal('s-echoes'); document.getElementById('ess-echoes-val').textContent=this.value;">
+      <span class="ess-val" id="ess-echoes-val">8</span>
+    </div>
+  </div>
+
   <!-- Quantize Mode -->
   <div class="ess-group">
     <span class="ess-label">Quantize:</span>
     <button class="q-toggle" id="q-free" onclick="setQuantizeMode('free')">Free</button>
     <button class="q-toggle active" id="q-echo-snap" onclick="setQuantizeMode('echo-snap')">Echo Snap</button>
     <button class="q-toggle" id="q-hard" onclick="setQuantizeMode('hard')">Hard</button>
-  </div>
-
-  <!-- Root Note -->
-  <div class="ess-group">
-    <span class="ess-label">Root:</span>
-    <select class="ess-select" id="ess-gen-root" onchange="document.getElementById('gen-root').value=this.value; document.getElementById('s-gen-root').value=this.value;">
-      <option value="48">C3</option><option value="55">G3</option><option value="60" selected>C4</option><option value="67">G4</option>
-    </select>
-  </div>
-
-  <!-- Reverb -->
-  <div class="ess-group">
-    <div class="ess-mini-knob">
-      <label>Reverb</label>
-      <input type="range" id="ess-reverb" min="0" max="1" step="0.01" value="0.4" oninput="document.getElementById('s-reverb').value=this.value; document.getElementById('reverb').value=this.value; document.getElementById('reverb').dispatchEvent(new Event('input')); updateStripVal('s-reverb'); document.getElementById('ess-reverb-val').textContent=parseFloat(this.value).toFixed(2).replace(/^0/,'');">
-      <span class="ess-val" id="ess-reverb-val">.40</span>
-    </div>
   </div>
 
   <!-- Deep Dive Toggle -->
@@ -4007,12 +4005,12 @@ const MODE_PRESETS = {
     label: '✧ Pure Sine',
     params: {
       attack: 5, adsrDecay: 300, sustain: 0.4, release: 1500,
-      decay: 0.618, echoes: 5, drift: 0.1, gap: 120,
+      decay: 0.618, echoes: 8, drift: 0.1, gap: 120,
       depth: 0, bloom: 0, predelay: 150, sym: 0,
       reverb: 0.15, width: 0.2, warmth: 0, seq: 'fibonacci'
     },
     harmonicsOn: false,
-    quantizeMode: 'free',
+    quantizeMode: 'echo-snap',
     noteMode: 'ripple'
   },
   'bell': {
@@ -4254,6 +4252,41 @@ syncStripFromOriginal = function() {
   _origSyncStrip();
   syncEssentials();
 };
+
+// ========== ESSENTIALS GAP TIMING ==========
+function setEssGapTiming(mode) {
+  currentSeqMode = mode;
+  // Update essentials bar toggles
+  document.querySelectorAll('#essentials-bar [id^="ess-gap-"]').forEach(b => b.classList.remove('active'));
+  const btn = document.getElementById('ess-gap-' + (mode === 'fibonacci' ? 'fib' : mode === 'golden' ? 'gold' : mode === 'linear' ? 'lin' : 'log'));
+  if (btn) btn.classList.add('active');
+  // Sync deep dive strip buttons
+  document.querySelectorAll('#s-seq-presets .strip-btn').forEach(b => b.classList.toggle('active', b.dataset.seq === mode));
+  document.querySelectorAll('#seq-presets .preset-btn').forEach(b => b.classList.toggle('active', b.dataset.seq === mode));
+  document.getElementById('val-seq').textContent = mode;
+}
+
+// Sync essentials echoes and gap timing from main params
+const _origSyncEss = syncEssentials;
+syncEssentials = function() {
+  _origSyncEss();
+  // Sync echoes
+  const essEchoes = document.getElementById('ess-echoes');
+  const mainEchoes = document.getElementById('echoes');
+  if (essEchoes && mainEchoes) {
+    essEchoes.value = mainEchoes.value;
+    const valEl = document.getElementById('ess-echoes-val');
+    if (valEl) valEl.textContent = mainEchoes.value;
+  }
+  // Sync gap timing toggles
+  document.querySelectorAll('#essentials-bar [id^="ess-gap-"]').forEach(b => b.classList.remove('active'));
+  const modeMap = { 'fibonacci': 'fib', 'golden': 'gold', 'linear': 'lin', 'log': 'log' };
+  const activeBtn = document.getElementById('ess-gap-' + (modeMap[currentSeqMode] || 'fib'));
+  if (activeBtn) activeBtn.classList.add('active');
+};
+
+// Auto-load Pure Sine on startup
+loadModePreset('pure-sine');
 
 // Initial sync
 syncEssentials();
