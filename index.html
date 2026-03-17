@@ -727,6 +727,17 @@
   <!-- Separator -->
   <div style="width:1px; height:24px; background:#1a1a2a;"></div>
 
+  <!-- Tuning -->
+  <div class="ess-group" style="display:flex; align-items:center; gap:3px;">
+    <span class="ess-label" style="font-size:8px; color:#555; text-transform:uppercase; letter-spacing:1px; white-space:nowrap;">Tune</span>
+    <button class="q-toggle active" id="ess-tune-440" onclick="setTuning('et440'); updateEssTuning('et440')">440</button>
+    <button class="q-toggle" id="ess-tune-432" onclick="setTuning('et432'); updateEssTuning('et432')">432</button>
+    <button class="q-toggle" id="ess-tune-just" onclick="setTuning('just'); updateEssTuning('just')">JUST</button>
+  </div>
+
+  <!-- Separator -->
+  <div style="width:1px; height:24px; background:#1a1a2a;"></div>
+
   <!-- Velocity -->
   <div class="ess-group" style="display:flex; align-items:center; gap:3px;">
     <button class="q-toggle" id="vel-toggle" onclick="toggleVelocity()">VEL OFF</button>
@@ -1219,8 +1230,8 @@
 </div>
 
 <!-- ===== DEEP DIVE TOGGLE (below keyboard) ===== -->
-<div id="deep-dive-bar" style="display:flex; align-items:center; justify-content:center; padding:6px 20px; background:#0b0b14; border-top:1px solid #1a1a2a; flex-shrink:0; z-index:10;">
-  <button class="deep-dive-btn" id="deep-dive-toggle" onclick="toggleDeepDive()" style="background:#1a1a2a; border:1px solid #2a2a3a; color:#888; padding:6px 20px; font-size:11px; font-family:'Courier New',monospace; cursor:pointer; border-radius:4px; letter-spacing:2px;">⚙ Deep Dive</button>
+<div id="deep-dive-bar" style="display:flex; align-items:center; justify-content:center; padding:8px 20px; background:#0d0d18; border-top:1px solid #2a2a3a; flex-shrink:0; z-index:10;">
+  <button class="deep-dive-btn" id="deep-dive-toggle" onclick="toggleDeepDive()" style="background:#1a1a2a; border:1px solid #d4a24e55; color:#c8a44e; padding:8px 28px; font-size:12px; font-family:'Courier New',monospace; cursor:pointer; border-radius:5px; letter-spacing:3px; text-transform:uppercase; transition:all 0.2s;">⚙ Deep Dive</button>
 </div>
 
 <script>
@@ -1239,17 +1250,21 @@ function toggleVelocity() {
 // Calculate velocity from click/touch Y position relative to key element
 // Top of key = soft (~40), bottom = loud (~127), middle = medium (~80)
 function getVelocityFromEvent(e, keyEl) {
-  if (!velocityEnabled) return 127; // default: full velocity
+  if (!velocityEnabled) return 127; // default: full velocity when VEL OFF
   const rect = keyEl.getBoundingClientRect();
   const relY = (e.clientY || (e.touches && e.touches[0].clientY) || rect.top) - rect.top;
   const pct = Math.max(0, Math.min(1, relY / rect.height)); // 0=top, 1=bottom
-  // Map: top(0) → velocity 40, bottom(1) → velocity 127
-  return Math.round(40 + pct * 87);
+  // Map: top(0) → velocity 20 (pianissimo), bottom(1) → velocity 127 (fortissimo)
+  return Math.round(20 + pct * 107);
 }
 
-// Map MIDI velocity (0-127) to gain multiplier (0.3 to 1.0)
+// Map MIDI velocity (0-127) to gain multiplier (0.05 to 1.0)
+// Uses exponential curve for more dramatic velocity response
 function velocityToGain(velocity) {
-  return 0.3 + (velocity / 127) * 0.7;
+  if (!velocityEnabled) return 1.0;
+  const normalized = velocity / 127; // 0..1
+  // Exponential curve: quiet touches are MUCH quieter, hard hits are loud
+  return 0.05 + 0.95 * (normalized * normalized);
 }
 
 // ========== AUDIO ENGINE ==========
@@ -2428,6 +2443,20 @@ function setTuning(mode) {
   
   const labels = { et440: '440Hz ET', et432: '432Hz ET', just: 'Just Intonation' };
   document.getElementById('val-tuning').textContent = labels[mode];
+  
+  // Sync essentials tuning buttons
+  updateEssTuning(mode);
+  
+  // Sync deep dive tuning buttons
+  document.querySelectorAll('[data-tuning]').forEach(b => b.classList.toggle('active', b.dataset.tuning === mode));
+}
+
+function updateEssTuning(mode) {
+  const modeMap = { 'et440': '440', 'et432': '432', 'just': 'just' };
+  ['440', '432', 'just'].forEach(id => {
+    const btn = document.getElementById('ess-tune-' + id);
+    if (btn) btn.classList.toggle('active', modeMap[mode] === id);
+  });
 }
 
 function buildPiano() {
@@ -2498,11 +2527,15 @@ function noteOn(midi, name, keyEl, velocity) {
   const tc = document.getElementById('tone-counter');
   if (tc) tc.textContent = `E:${_p.echoes} D:${_p.depth}${velocityEnabled ? ' V:'+velocity : ''}`;
   
-  // Immediate first trigger
+  // Immediate first trigger — always fire, no gating
   triggerRipple(freq, name, midi, velocity);
   
   // Hold tracking (pulse disabled for now — isolating intentional sounds)
-  if (!heldNotes[midi]) {
+  // In Free/OFF mode, allow re-triggering even if note is already held
+  if (currentQuantizeMode === 'free' || currentQuantizeMode === 'off') {
+    // Don't block — just update tracking
+    heldNotes[midi] = { interval: null, count: 0, keyEl, name, freq };
+  } else if (!heldNotes[midi]) {
     heldNotes[midi] = { interval: null, count: 0, keyEl, name, freq };
   }
 }
@@ -2532,7 +2565,9 @@ const KEY_MAP = {
 
 const pressedKeys = new Set();
 document.addEventListener('keydown', (e) => {
-  if (e.repeat || pressedKeys.has(e.key)) return;
+  if (e.repeat) return;
+  // In Free/OFF mode, allow re-triggering same key; otherwise block if held
+  if (pressedKeys.has(e.key) && currentQuantizeMode !== 'free' && currentQuantizeMode !== 'off') return;
   const midi = KEY_MAP[e.key.toLowerCase()];
   if (midi !== undefined) {
     pressedKeys.add(e.key);
@@ -2601,8 +2636,11 @@ if (navigator.requestMIDIAccess) {
             const lastOn = window._noteOnTimes[data1] || 0;
             const timeSince = now - lastOn;
             
-            if (timeSince < 1000) {
-              // Block — same note within 1 second
+            // In Free/OFF mode, allow rapid re-triggers (30ms dedup for physical bounce only)
+            // In other modes, use 1 second dedup to prevent MPE channel cycling noise
+            const dedupMs = (currentQuantizeMode === 'free' || currentQuantizeMode === 'off') ? 30 : 1000;
+            if (timeSince < dedupMs) {
+              // Block — same note too fast (bounce protection)
               document.getElementById('s-midi-status').textContent = `BLOCKED ${timeSince.toFixed(0)}ms n=${data1} ch${ch}`;
               document.getElementById('s-midi-status').style.color = '#c44';
             } else {
