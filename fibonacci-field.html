@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fibonacci Field — real phyllotaxis, alive · Ripple Engine</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;}
+  html,body{height:100%;overflow:hidden;background:#02060f;}
+  body{font-family:"Iowan Old Style",Palatino,Georgia,serif;color:#cfe0ff;}
+  #c{position:fixed;inset:0;width:100%;height:100%;display:block;cursor:crosshair;}
+  .ui{position:fixed;left:16px;bottom:14px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;z-index:5;}
+  .ui button{
+    background:rgba(90,130,220,0.10);color:#e7d6a6;
+    border:1px solid rgba(216,180,94,0.25);border-radius:8px;
+    font:inherit;font-size:12.5px;padding:6px 11px;cursor:pointer;transition:.2s;
+  }
+  .ui button:hover{border-color:rgba(216,180,94,0.6);}
+  .ui button.on{background:linear-gradient(180deg,#e9c98b,#d8a657);color:#04102a;font-weight:600;}
+  .ui .sep{width:1px;height:20px;background:rgba(216,180,94,0.2);margin:0 3px;}
+  #hint{position:fixed;top:16px;left:0;right:0;text-align:center;color:rgba(216,180,94,0.55);
+    font-size:13px;font-style:italic;pointer-events:none;transition:opacity 1.5s;}
+  #count{position:fixed;top:16px;right:18px;color:rgba(140,175,255,0.6);font-size:12px;font-variant-numeric:tabular-nums;}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="hint">the golden angle plants each seed — the spirals arrange themselves · click to send a ripple through the field</div>
+<div id="count"></div>
+<div class="ui">
+  <button id="growBtn">↻ re-bloom</button>
+  <span class="sep"></span>
+  reveal spirals
+  <button data-arm="0" class="on">off</button>
+  <button data-arm="13">13</button>
+  <button data-arm="21">21</button>
+  <button data-arm="34">34</button>
+  <button data-arm="55">55</button>
+  <span class="sep"></span>
+  <button id="pulseBtn">◉ auto-pulse</button>
+</div>
+
+<script>
+(function(){
+"use strict";
+const cv = document.getElementById('c'), ctx = cv.getContext('2d');
+let W,H,CX,CY,DPR=Math.min(devicePixelRatio||1,2);
+function resize(){
+  W=cv.width=innerWidth*DPR; H=cv.height=innerHeight*DPR;
+  cv.style.width=innerWidth+'px'; cv.style.height=innerHeight+'px';
+  CX=W/2; CY=H/2; layout();
+}
+window.addEventListener('resize', resize);
+
+/* ---- the real math: golden-angle phyllotaxis ---- */
+const GOLDEN = Math.PI*(3-Math.sqrt(5));     // 137.507° — THE golden angle
+const N = 987;                                // a Fibonacci number of seeds
+let seeds = [];                               // {n, r, baseAng, x, y}
+let fieldR = 1;
+function layout(){
+  fieldR = Math.min(W,H)*0.46;
+  const C = fieldR/Math.sqrt(N);              // radius scale so seed N sits at the edge
+  seeds = new Array(N);
+  for(let n=0;n<N;n++){
+    const r = C*Math.sqrt(n+0.5);
+    const a = n*GOLDEN;
+    seeds[n] = {n, r, a};
+  }
+}
+
+/* ---- state ---- */
+let armMode = 0;            // 0 = off, else colour seeds by (n % arm) to reveal parastichies
+let autoPulse = true;
+let growth = 0;            // 0..1 bloom front (seeds appear from centre outward)
+let regrow = 0;           // re-bloom timer
+const ripples = [];        // {born, speed, strength} — expanding rings of brightness (sound-reactive)
+let t0=0, last=0;
+
+/* a ripple = one "sound event" travelling out through the seed rings.
+   Wire the ripple engine's note-on here: window.fibPulse(strength) */
+function pulse(strength){
+  ripples.push({born:(performance.now()-t0)/1000, speed:fieldR*0.55, strength:strength||1});
+  if(ripples.length>14) ripples.shift();
+}
+window.fibPulse = pulse;   // integration hook for the Ripple Engine
+
+/* deep-blue → gold field colour by radius, warmed by brightness */
+function seedColor(rNorm, bright, hueArm){
+  if(armMode && hueArm!=null){
+    // reveal mode: alternate arms blue↔gold so the spiral families separate
+    const g = 0.5+0.5*Math.cos(hueArm*2*Math.PI/armMode * 1);
+    const R = Math.round(70 + g*150 + bright*60);
+    const G = Math.round(90 + g*90  + bright*70);
+    const B = Math.round(200 - g*150 + bright*40);
+    return `rgba(${R},${G},${B},${0.25+bright*0.75})`;
+  }
+  // natural: centre gold, edge blue
+  const R = Math.round(60 + (1-rNorm)*180 + bright*70);
+  const G = Math.round(90 + (1-rNorm)*95  + bright*70);
+  const B = Math.round(150 + rNorm*90 - bright*30);
+  return `rgba(${R},${G},${B},${0.2+bright*0.8})`;
+}
+
+function frame(ts){
+  requestAnimationFrame(frame);
+  if(!t0){t0=ts;last=ts;}
+  const t=(ts-t0)/1000;
+  const dt=Math.min((ts-last)/1000,0.05); last=ts;
+
+  // bloom in over ~5s, gentle ease
+  if(growth<1) growth=Math.min(1, growth+dt/5);
+  if(regrow>0){ regrow-=dt; if(regrow<=0){} }
+
+  // breath — slow global swell
+  const breath = 0.5+0.5*Math.sin(t*2*Math.PI/9);
+
+  // auto-pulse on golden timing (feels alive without sound)
+  if(autoPulse){
+    frame._next = frame._next==null ? 2.2 : frame._next;
+    frame._next -= dt;
+    if(frame._next<=0){ pulse(0.7+Math.random()*0.4); frame._next = 2.0+Math.random()*2.6; }
+  }
+
+  // advance ripples
+  for(const rp of ripples) rp.age = t - rp.born;
+  for(let i=ripples.length-1;i>=0;i--){ if(ripples[i].age*ripples[i].speed > fieldR*1.5) ripples.splice(i,1); }
+
+  // ---- draw ----
+  ctx.globalCompositeOperation='source-over';
+  const bg=ctx.createRadialGradient(CX,CY,0,CX,CY,fieldR*1.7);
+  bg.addColorStop(0, `rgba(10,26,64,${0.9})`);
+  bg.addColorStop(0.5,'#04102a');
+  bg.addColorStop(1,'#02060f');
+  ctx.fillStyle=bg; ctx.fillRect(0,0,W,H);
+
+  const spin = t*0.045;                        // slow whole-field rotation
+  const cos=Math.cos(spin), sin=Math.sin(spin);
+  const growR = growth*fieldR*1.02;
+
+  ctx.globalCompositeOperation='lighter';       // seeds add light — glow where they overlap
+  for(let n=0;n<N;n++){
+    const s=seeds[n];
+    if(s.r>growR) continue;                     // not bloomed yet
+    const rn = s.r/fieldR;
+    // rotate
+    const ca=Math.cos(s.a+spin), sa=Math.sin(s.a+spin);
+    const x=CX+s.r*ca, y=CY+s.r*sa;
+
+    // brightness from breath + any ripple passing this ring
+    let bright = 0.10 + breath*0.14*(1-rn*0.6);
+    for(const rp of ripples){
+      const front = rp.age*rp.speed;
+      const d = Math.abs(s.r - front);
+      const band = fieldR*0.10;
+      if(d<band){
+        const env = Math.exp(-(d*d)/(2*band*band*0.4)) * Math.max(0,1-rp.age*0.35) * rp.strength;
+        bright += env*0.9;
+      }
+    }
+    bright=Math.min(bright,1);
+
+    const size = (1.4 + rn*2.2 + bright*2.6)*DPR;
+    // soft glow
+    const g=ctx.createRadialGradient(x,y,0,x,y,size*2.4);
+    const col=seedColor(rn,bright, armMode? (n%armMode):null);
+    g.addColorStop(0,col);
+    g.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.fillStyle=g;
+    ctx.beginPath(); ctx.arc(x,y,size*2.4,0,Math.PI*2); ctx.fill();
+    // bright core
+    ctx.fillStyle=`rgba(${armMode?'220,210,255':'255,225,160'},${0.25+bright*0.7})`;
+    ctx.beginPath(); ctx.arc(x,y,size*0.5,0,Math.PI*2); ctx.fill();
+  }
+  ctx.globalCompositeOperation='source-over';
+
+  document.getElementById('count').textContent =
+    armMode ? `${armMode} spiral arms · golden angle 137.507°` : `${N} seeds · golden angle 137.507°`;
+}
+
+/* ---- interaction ---- */
+cv.addEventListener('pointerdown', ()=>{ pulse(1.1); document.getElementById('hint').style.opacity=0; });
+document.getElementById('growBtn').onclick = ()=>{ growth=0; };
+document.getElementById('pulseBtn').onclick = e=>{ autoPulse=!autoPulse; e.target.classList.toggle('on',autoPulse); };
+document.querySelectorAll('.ui button[data-arm]').forEach(b=>{
+  b.onclick=()=>{ armMode=+b.dataset.arm;
+    document.querySelectorAll('.ui button[data-arm]').forEach(x=>x.classList.toggle('on', x===b)); };
+});
+document.getElementById('pulseBtn').classList.add('on');
+
+resize();
+requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
