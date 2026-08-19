@@ -633,6 +633,7 @@
 <div id="mode-tabs" style="display:flex; padding:0 20px; background:#0c0c16; border-bottom:1px solid #1a1a2a; flex-shrink:0; z-index:10;">
   <button class="mode-btn" id="tab-player" onclick="switchTab('player')" style="padding:8px 24px; font-size:11px; letter-spacing:2px; text-transform:uppercase; border:none; background:none; border-bottom:2px solid #c8a44e; color:#c8a44e; cursor:pointer; font-family:'Courier New',monospace;">Player Mode</button>
   <button class="mode-btn" id="tab-gen" onclick="switchTab('gen')" style="padding:8px 24px; font-size:11px; letter-spacing:2px; text-transform:uppercase; border:none; background:none; border-bottom:2px solid transparent; color:#555; cursor:pointer; font-family:'Courier New',monospace;">Gen Mode</button>
+  <button onclick="panicStop()" title="Kill all audio — stops gen, silences everything, cuts MIDI" style="margin-left:14px; padding:6px 16px; font-size:11px; letter-spacing:1px; border:1px solid #c44; background:#2a1414; color:#f88; cursor:pointer; border-radius:4px; font-family:'Courier New',monospace; font-weight:bold;">🔇 KILL</button>
 </div>
 
 <!-- ===== GEN TAB CONTROLS (hidden when player tab active) ===== -->
@@ -4778,20 +4779,28 @@ function stopCapture() {
 
 // ========== PANIC STOP — kill all sound ==========
 function panicStop() {
-  midiOutAllOff();                       // hush external instruments too
-  if (typeof genCascadeClear === 'function') genCascadeClear(); // cancel pending cascade strikes
+  // 1. stop the generative engine so it can't keep firing into a dead context
+  genActive = false;
+  if (genTimer) { clearTimeout(genTimer); genTimer = null; }
+  if (typeof polyTimerB !== 'undefined' && polyTimerB) { clearTimeout(polyTimerB); polyTimerB = null; }
+  ['gen-start','s-gen-start','gen-tab-play'].forEach(id => {
+    const b = document.getElementById(id); if (!b) return;
+    b.textContent = (id === 'gen-tab-play') ? '▶ START' : (id === 's-gen-start' ? '▶' : '▶ Start');
+    b.classList.remove('recording', 'active');
+  });
+  // 2. hush external instruments if MIDI-out exists
+  if (typeof midiOutAllOff === 'function') midiOutAllOff();
+  if (typeof genCascadeClear === 'function') genCascadeClear();
+  // 3. kill all audio — closing the context stops every scheduled oscillator instantly
   if (!audioCtx) return;
-  // Suspend and resume to kill all scheduled oscillators
-  audioCtx.close();
+  try { audioCtx.close(); } catch (e) {}
   audioCtx = null;
   masterGain = null;
   reverbNode = null;
   reverbGain = null;
   dryGain = null;
-  // Clear held notes
-  Object.keys(heldNotes).forEach(k => delete heldNotes[k]);
-  // Clear active ripples
-  activeRipples.length = 0;
+  if (typeof heldNotes === 'object' && heldNotes) Object.keys(heldNotes).forEach(k => delete heldNotes[k]);
+  if (typeof activeRipples !== 'undefined' && activeRipples) activeRipples.length = 0;
 }
 
 // ========== STRIP ↔ ORIGINAL SYNC ==========
