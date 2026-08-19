@@ -636,28 +636,130 @@
 </div>
 
 <!-- ===== GEN TAB CONTROLS (hidden when player tab active) ===== -->
-<div id="gen-tab-controls" style="display:none; padding:6px 20px; background:#0c0c16; border-bottom:1px solid #1a1a2a; flex-shrink:0; z-index:10; align-items:center; gap:16px;">
+<div id="gen-tab-controls" style="display:none; padding:6px 20px; background:#0c0c16; border-bottom:1px solid #1a1a2a; flex-shrink:0; z-index:10; align-items:center; gap:16px; flex-wrap:wrap;">
   <button class="mode-btn" id="gen-tab-play" onclick="toggleGenerative()" style="background:#1a1a2a; border:1px solid #2a2a3a; color:#c8a44e; padding:5px 16px; font-size:11px; font-family:'Courier New',monospace; cursor:pointer; border-radius:4px; letter-spacing:1px;">▶ START</button>
   <div style="display:flex; align-items:center; gap:6px;">
     <span style="font-size:9px; color:#666; text-transform:uppercase; letter-spacing:1px;">Root</span>
-    <select id="s-gen-root" style="background:#12121e;color:#c8a44e;border:1px solid #2a2a3a;padding:3px 6px;font-size:10px;font-family:monospace;border-radius:3px;" onchange="document.getElementById('gen-root').value=this.value">
-      <option value="48">C3</option><option value="55">G3</option><option value="60" selected>C4</option><option value="67">G4</option>
+    <select id="s-gen-root" style="background:#12121e;color:#c8a44e;border:1px solid #2a2a3a;padding:3px 6px;font-size:10px;font-family:monospace;border-radius:3px;" onchange="setGenRootFor(genEditVoice, this.value)">
+      <option value="36">C2</option><option value="43">G2</option><option value="48">C3</option><option value="55">G3</option><option value="60" selected>C4</option><option value="64">E4</option><option value="67">G4</option><option value="72">C5</option><option value="79">G5</option>
     </select>
   </div>
   <div style="display:flex; align-items:center; gap:6px;">
+    <span style="font-size:9px; color:#666; text-transform:uppercase; letter-spacing:1px;">Range</span>
+    <input type="range" id="gen-range" min="1" max="4" step="1" value="2" oninput="setGenRange(this.value)" style="width:50px; -webkit-appearance:none; height:3px; background:#1a1a2a; border:none; outline:none;">
+    <span style="font-size:10px; color:#c8a44e; font-weight:bold; min-width:34px;" id="gen-range-val">2 oct</span>
+  </div>
+  <div style="display:flex; align-items:center; gap:6px;">
     <span style="font-size:9px; color:#666; text-transform:uppercase; letter-spacing:1px;">Density</span>
-    <input type="range" id="s-gen-density" min="0.05" max="1" step="0.05" value="0.3" oninput="document.getElementById('gen-density').value=this.value; document.getElementById('gen-tab-density-val').textContent=parseFloat(this.value).toFixed(2)" style="width:60px; -webkit-appearance:none; height:3px; background:#1a1a2a; border:none; outline:none;">
+    <input type="range" id="s-gen-density" min="0.05" max="1" step="0.05" value="0.3" oninput="setGenDensityFor(genEditVoice, this.value)" style="width:60px; -webkit-appearance:none; height:3px; background:#1a1a2a; border:none; outline:none;">
     <span style="font-size:10px; color:#c8a44e; font-weight:bold; min-width:28px;" id="gen-tab-density-val">0.30</span>
   </div>
   <div style="display:flex; align-items:center; gap:4px;">
     <span style="font-size:9px; color:#666; text-transform:uppercase; letter-spacing:1px;">Timing</span>
-    <button class="q-toggle active" data-gentiming="fibonacci" onclick="genTiming='fibonacci';document.querySelectorAll('[data-gentiming]').forEach(b=>b.classList.remove('active'));this.classList.add('active')">FIB</button>
-    <button class="q-toggle" data-gentiming="golden" onclick="genTiming='golden';document.querySelectorAll('[data-gentiming]').forEach(b=>b.classList.remove('active'));this.classList.add('active')">φ</button>
-    <button class="q-toggle" data-gentiming="linear" onclick="genTiming='linear';document.querySelectorAll('[data-gentiming]').forEach(b=>b.classList.remove('active'));this.classList.add('active')">LIN</button>
+    <button class="q-toggle active" data-gentiming="fibonacci" onclick="setGenTiming('fibonacci')">FIB</button>
+    <button class="q-toggle" data-gentiming="golden" onclick="setGenTiming('golden')">φ</button>
+    <button class="q-toggle" data-gentiming="linear" onclick="setGenTiming('linear')">LIN</button>
   </div>
   <div style="display:flex; align-items:center; gap:6px;">
     <span style="font-size:9px; color:#666; text-transform:uppercase; letter-spacing:1px;">Space</span>
     <input type="range" id="gen-tab-space" min="0" max="1" step="0.01" value="0.5" oninput="applySpaciousness(parseFloat(this.value))" style="width:60px; -webkit-appearance:none; height:3px; background:#1a1a2a; border:none; outline:none;">
+  </div>
+  <div style="display:flex; align-items:center; gap:4px;">
+    <span style="font-size:9px; color:#666; text-transform:uppercase; letter-spacing:1px;">Voices</span>
+    <button id="gen-vc-1" onclick="setGenVoiceCount(1)" style="padding:3px 8px;font-size:9px;font-family:monospace;cursor:pointer;border-radius:3px;border:1px solid #c8a44e;background:#3a2f18;color:#e0b45e;">1</button>
+    <button id="gen-vc-2" onclick="setGenVoiceCount(2)" title="counterpoint — two independent lines" style="padding:3px 8px;font-size:9px;font-family:monospace;cursor:pointer;border-radius:3px;border:1px solid #2a2a3a;background:#12121e;color:#666;">2</button>
+    <span id="gen-edit-wrap" style="display:none; align-items:center; gap:3px; margin-left:4px;">
+      <span style="font-size:9px; color:#666; text-transform:uppercase; letter-spacing:1px;">edit</span>
+      <button id="gen-edit-a" onclick="setGenEditVoice('A')" style="padding:3px 8px;font-size:9px;font-family:monospace;cursor:pointer;border-radius:3px;border:1px solid #c8a44e;background:#3a2f18;color:#e0b45e;">A</button>
+      <button id="gen-edit-b" onclick="setGenEditVoice('B')" style="padding:3px 8px;font-size:9px;font-family:monospace;cursor:pointer;border-radius:3px;border:1px solid #2a2a3a;background:#12121e;color:#666;">B</button>
+    </span>
+  </div>
+  <button id="gen-consonance-btn" onclick="toggleGenConsonance()" title="steer new notes away from clashing with notes still ringing (m2 / M7 / tritone)" style="padding:3px 8px;font-size:9px;font-family:monospace;cursor:pointer;border-radius:3px;border:1px solid #c8a44e;background:#3a2f18;color:#e0b45e;">◈ consonance</button>
+  <div id="gen-hud" style="display:flex; gap:10px; align-items:baseline; margin-left:auto;">
+    <span style="font-size:9px; color:#666; letter-spacing:1px;">NOW</span>
+    <span id="gen-hud-a" style="font-size:16px; color:#e0b45e; font-family:'Courier New',monospace; font-weight:bold; min-width:44px; transition:text-shadow .25s;">—</span>
+    <span id="gen-hud-b" style="display:none; font-size:16px; color:#8ba4d4; font-family:'Courier New',monospace; font-weight:bold; min-width:44px; transition:text-shadow .25s;">—</span>
+  </div>
+  <!-- NOTE SELECTOR (SCION-style scale buttons) -->
+  <div style="flex-basis:100%; width:100%; margin-top:6px; display:flex; flex-direction:column; gap:5px;">
+    <div style="display:flex; align-items:center; gap:6px;">
+      <span style="font-size:9px; color:#666; text-transform:uppercase; letter-spacing:1px; min-width:38px;">Notes</span>
+      <div id="gen-keyboard" style="display:flex; gap:2px; flex:1;"></div>
+    </div>
+    <div style="display:flex; align-items:center; gap:4px; flex-wrap:wrap;">
+      <span style="font-size:9px; color:#666; text-transform:uppercase; letter-spacing:1px; min-width:38px;">Scale</span>
+      <span id="gen-scale-presets" style="display:flex; gap:3px; flex-wrap:wrap;"></span>
+    </div>
+    <div style="display:flex; align-items:center; gap:4px; flex-wrap:wrap;">
+      <span style="font-size:9px; color:#666; text-transform:uppercase; letter-spacing:1px; min-width:38px;">Motion</span>
+      <span id="gen-motion-btns" style="display:flex; gap:3px; flex-wrap:wrap;"></span>
+      <span id="gen-burst-wrap" style="display:flex; align-items:center; gap:6px; margin-left:10px; transition:opacity .3s;">
+        <span style="font-size:9px; color:#666; text-transform:uppercase; letter-spacing:1px;">Phrase</span>
+        <input type="range" id="gen-burst-size" min="2" max="8" step="1" value="4" style="width:50px; -webkit-appearance:none; height:3px; background:#1a1a2a; border:none; outline:none;" oninput="setGenBurstSize(this.value)">
+        <span id="gen-burst-size-val" style="font-size:10px; color:#c8a44e; font-weight:bold; min-width:10px;">4</span>
+        <span style="display:flex; gap:2px;">
+          <button data-burstdir="asc" onclick="setGenBurstDir('asc')" title="phrases rise" style="padding:3px 7px;font-size:9px;font-family:monospace;cursor:pointer;border-radius:3px;border:1px solid #2a2a3a;background:#12121e;color:#888;">↑</button>
+          <button data-burstdir="desc" onclick="setGenBurstDir('desc')" title="phrases fall" style="padding:3px 7px;font-size:9px;font-family:monospace;cursor:pointer;border-radius:3px;border:1px solid #2a2a3a;background:#12121e;color:#888;">↓</button>
+          <button data-burstdir="alternate" onclick="setGenBurstDir('alternate')" title="phrases alternate rise / fall" style="padding:3px 7px;font-size:9px;font-family:monospace;cursor:pointer;border-radius:3px;border:1px solid #2a2a3a;background:#12121e;color:#888;">↕</button>
+          <button data-burstdir="random" onclick="setGenBurstDir('random')" title="each phrase picks its own way" style="padding:3px 7px;font-size:9px;font-family:monospace;cursor:pointer;border-radius:3px;border:1px solid #2a2a3a;background:#12121e;color:#888;">⚄</button>
+        </span>
+        <span id="gen-phrase-shape" title="the shape of one phrase — lights up as it plays" style="display:flex; align-items:flex-end; gap:2px; height:14px; margin-left:4px;"></span>
+      </span>
+    </div>
+    <div style="display:flex; align-items:center; gap:4px; flex-wrap:wrap;">
+      <span style="font-size:9px; color:#666; text-transform:uppercase; letter-spacing:1px; min-width:38px;" title="compose your own motion: tap moves to build a repeating dance">Recipe</span>
+      <span id="gen-recipe-tokens" style="display:flex; gap:2px;"></span>
+      <span style="font-size:10px; color:#444;">→</span>
+      <span id="gen-recipe-chips" style="display:flex; gap:2px; flex-wrap:wrap; align-items:center;"></span>
+      <button id="gen-recipe-clear" onclick="clearGenRecipe()" title="clear recipe" style="display:none; padding:3px 7px;font-size:9px;font-family:monospace;cursor:pointer;border-radius:3px;border:1px solid #2a2a3a;background:#12121e;color:#888;">✕</button>
+    </div>
+    <!-- CHORD PROGRESSION (v0 prototype) -->
+    <div style="display:flex; align-items:center; gap:4px; flex-wrap:wrap;">
+      <span style="font-size:9px; color:#666; text-transform:uppercase; letter-spacing:1px; min-width:38px;" title="v0 prototype — this voice walks a diatonic progression instead of single notes">Chords</span>
+      <button id="gen-chord-btn" onclick="toggleGenChords()" style="padding:3px 8px;font-size:9px;font-family:monospace;cursor:pointer;border-radius:3px;border:1px solid #2a2a3a;background:#12121e;color:#666;">○ off</button>
+      <select id="gen-chord-prog" onchange="setGenChordProg(this.value)" style="background:#12121e;color:#c8a44e;border:1px solid #2a2a3a;padding:3px 6px;font-size:10px;font-family:monospace;border-radius:3px;"></select>
+      <button id="gen-chord7-btn" onclick="toggleGenChord7()" title="voice 7th chords (adds the scale 7th on top)" style="padding:3px 8px;font-size:9px;font-family:monospace;cursor:pointer;border-radius:3px;border:1px solid #2a2a3a;background:#12121e;color:#666;">7th</button>
+      <span style="font-size:9px; color:#444; font-style:italic;">gently arpeggiated through the ripple voice</span>
+    </div>
+    <!-- CASCADE (family standard — sweep the active scale) -->
+    <div style="display:flex; align-items:center; gap:4px; flex-wrap:wrap;">
+      <span style="font-size:9px; color:#666; text-transform:uppercase; letter-spacing:1px; min-width:38px;">Cascade</span>
+      <button id="gen-casc-btn" onclick="genCascade()" title="strike every active note in sequence" style="padding:3px 10px;font-size:9px;font-family:monospace;cursor:pointer;border-radius:3px;border:1px solid #c8a44e;background:#12121e;color:#c8a44e;transition:background .3s;">∿ sweep</button>
+      <button data-cascdir="up" onclick="setGenCascDir('up')" title="low → high" style="padding:3px 7px;font-size:9px;font-family:monospace;cursor:pointer;border-radius:3px;border:1px solid #c8a44e;background:#3a2f18;color:#e0b45e;">↑</button>
+      <button data-cascdir="down" onclick="setGenCascDir('down')" title="high → low" style="padding:3px 7px;font-size:9px;font-family:monospace;cursor:pointer;border-radius:3px;border:1px solid #2a2a3a;background:#12121e;color:#888;">↓</button>
+      <button data-cascdir="updown" onclick="setGenCascDir('updown')" title="up then back down" style="padding:3px 7px;font-size:9px;font-family:monospace;cursor:pointer;border-radius:3px;border:1px solid #2a2a3a;background:#12121e;color:#888;">↕</button>
+      <span style="font-size:9px; color:#666; text-transform:uppercase; letter-spacing:1px;">spread</span>
+      <input type="range" id="gen-casc-spread" min="60" max="400" step="10" value="130" oninput="genCascSpread=parseInt(this.value);document.getElementById('gen-casc-spread-val').textContent=this.value+'ms'" style="width:50px; -webkit-appearance:none; height:3px; background:#1a1a2a; border:none; outline:none;">
+      <span id="gen-casc-spread-val" style="font-size:10px; color:#c8a44e; font-weight:bold; min-width:38px;">130ms</span>
+      <span style="font-size:9px; color:#666; text-transform:uppercase; letter-spacing:1px;">auto</span>
+      <button data-cascauto="0" onclick="setGenCascAuto(0)" style="padding:3px 7px;font-size:9px;font-family:monospace;cursor:pointer;border-radius:3px;border:1px solid #c8a44e;background:#3a2f18;color:#e0b45e;">off</button>
+      <button data-cascauto="2" onclick="setGenCascAuto(2)" title="a sweep arrives by chance, ~every 2 minutes" style="padding:3px 7px;font-size:9px;font-family:monospace;cursor:pointer;border-radius:3px;border:1px solid #2a2a3a;background:#12121e;color:#888;">~2m</button>
+      <button data-cascauto="5" onclick="setGenCascAuto(5)" title="a sweep arrives by chance, ~every 5 minutes" style="padding:3px 7px;font-size:9px;font-family:monospace;cursor:pointer;border-radius:3px;border:1px solid #2a2a3a;background:#12121e;color:#888;">~5m</button>
+    </div>
+    <!-- SCENES (family standard — save / recall the whole gen setup) -->
+    <div style="display:flex; align-items:center; gap:4px; flex-wrap:wrap;">
+      <span style="font-size:9px; color:#666; text-transform:uppercase; letter-spacing:1px; min-width:38px;">Scenes</span>
+      <input type="text" id="gen-scene-name" placeholder="name…" style="background:#12121e;color:#c8a44e;border:1px solid #2a2a3a;padding:3px 6px;font-size:10px;font-family:monospace;border-radius:3px;width:90px;">
+      <button onclick="saveGenScene()" style="padding:3px 10px;font-size:9px;font-family:monospace;cursor:pointer;border-radius:3px;border:1px solid #c8a44e;background:#12121e;color:#c8a44e;">＋ save</button>
+      <span id="gen-scenes-list" style="display:flex; gap:3px; flex-wrap:wrap; align-items:center;"></span>
+    </div>
+    <!-- NATURE BED + MIDI OUT -->
+    <div style="display:flex; align-items:center; gap:4px; flex-wrap:wrap;">
+      <span style="font-size:9px; color:#666; text-transform:uppercase; letter-spacing:1px; min-width:38px;">🌿 Bed</span>
+      <select id="nat-sel" onchange="natSelChange()" style="background:#12121e;color:#c8a44e;border:1px solid #2a2a3a;padding:3px 6px;font-size:10px;font-family:monospace;border-radius:3px;max-width:150px;"></select>
+      <button id="nat-play" onclick="natToggle()" title="play / stop the nature bed (never auto-starts)" style="padding:3px 10px;font-size:10px;font-family:monospace;cursor:pointer;border-radius:3px;border:1px solid #c8a44e;background:#12121e;color:#c8a44e;">▶</button>
+      <input type="range" id="nat-gain" min="0" max="1" step="0.01" value="0.35" oninput="natSetGain(this.value)" style="width:60px; -webkit-appearance:none; height:3px; background:#1a1a2a; border:none; outline:none;">
+      <span id="nat-gain-val" style="font-size:10px; color:#c8a44e; font-weight:bold; min-width:24px;">.35</span>
+      <span style="width:1px; height:14px; background:#2a2a3a; margin:0 8px;"></span>
+      <span style="font-size:9px; color:#666; text-transform:uppercase; letter-spacing:1px;">MIDI out</span>
+      <select id="midiout-sel" onchange="midiOutSelect(this.value)" style="background:#12121e;color:#c8a44e;border:1px solid #2a2a3a;padding:3px 6px;font-size:10px;font-family:monospace;border-radius:3px;max-width:160px;"><option value="">off — internal only</option></select>
+      <span style="font-size:9px; color:#666;">ch</span>
+      <select id="midiout-ch" onchange="midiOut.ch=parseInt(this.value)-1" style="background:#12121e;color:#c8a44e;border:1px solid #2a2a3a;padding:3px 4px;font-size:10px;font-family:monospace;border-radius:3px;"></select>
+      <span style="font-size:9px; color:#666;" title="voice B can send on its own channel in 2-voice mode">B→</span>
+      <select id="midiout-chb" onchange="midiOut.chB=this.value===''?-1:parseInt(this.value)-1" style="background:#12121e;color:#8ba4d4;border:1px solid #2a2a3a;padding:3px 4px;font-size:10px;font-family:monospace;border-radius:3px;"></select>
+      <button id="midiout-audio-btn" onclick="toggleInternalAudio()" title="toggle the internal sine voice — off = MIDI-only (drive Ableton)" style="padding:3px 8px;font-size:9px;font-family:monospace;cursor:pointer;border-radius:3px;border:1px solid #c8a44e;background:#3a2f18;color:#e0b45e;">🔊 synth</button>
+      <span id="midiout-status" style="font-size:9px; color:#555; font-family:monospace;">○ off</span>
+    </div>
   </div>
 </div>
 
@@ -893,11 +995,11 @@
     </div>
     <div class="strip-knobs" style="margin-top:2px;">
       <div class="mini-knob"><label>Root</label>
-        <select id="s-gen-root" style="background:#0d0d15;color:#d4a24e;border:1px solid #333;padding:1px 2px;font-size:9px;width:44px;" onchange="document.getElementById('gen-root').value=this.value">
-          <option value="48">C3</option><option value="55">G3</option><option value="60" selected>C4</option><option value="67">G4</option>
+        <select id="s-gen-root" style="background:#0d0d15;color:#d4a24e;border:1px solid #333;padding:1px 2px;font-size:9px;width:44px;" onchange="setGenRootFor('A', this.value)">
+          <option value="36">C2</option><option value="43">G2</option><option value="48">C3</option><option value="55">G3</option><option value="60" selected>C4</option><option value="64">E4</option><option value="67">G4</option><option value="72">C5</option><option value="79">G5</option>
         </select>
       </div>
-      <div class="mini-knob"><label>Dense</label><input type="range" id="s-gen-density" min="0.05" max="1" step="0.05" value="0.3" oninput="document.getElementById('gen-density').value=this.value" style="width:44px;"><div class="mini-val" id="sv-gendensity">0.3</div></div>
+      <div class="mini-knob"><label>Dense</label><input type="range" id="s-gen-density" min="0.05" max="1" step="0.05" value="0.3" oninput="setGenDensityFor('A', this.value)" style="width:44px;"><div class="mini-val" id="sv-gendensity">0.3</div></div>
     </div>
     <div class="strip-btns" style="margin-top:2px;">
       <button class="strip-btn active" data-gentiming="fibonacci" onclick="genTiming='fibonacci';this.parentElement.querySelectorAll('.strip-btn').forEach(b=>b.classList.remove('active'));this.classList.add('active')">Fib</button>
@@ -949,6 +1051,8 @@
     <!-- ADSR -->
     <div class="param-group">
       <h3>Envelope (ADSR)</h3>
+      <canvas id="adsr-canvas" width="252" height="84" style="width:100%; height:84px; display:block; background:#0c0c16; border:1px solid #1a1a2a; border-radius:4px; margin-bottom:2px; cursor:crosshair; touch-action:none;"></canvas>
+      <div style="font-size:8px; color:#444; margin-bottom:8px;">drag the glowing points — attack · decay/sustain · release</div>
       <div class="param">
         <label>Attack (ms) <span class="val" id="val-attack">5</span></label>
         <input type="range" id="attack" min="1" max="500" step="1" value="5">
@@ -1163,17 +1267,19 @@
         <button class="preset-btn" id="gen-start" style="flex:1; padding:6px;" onclick="toggleGenerative()">▶ Start</button>
       </div>
       <div class="param">
-        <label>Root Note <span class="val" id="val-genroot">C3</span></label>
-        <select id="gen-root" style="background:#1a1a2a;color:#d4a24e;border:1px solid #333;padding:3px;font-size:11px;width:100%;" onchange="document.getElementById('val-genroot').textContent=this.value">
+        <label>Root Note <span class="val" id="val-genroot">C4</span></label>
+        <select id="gen-root" style="background:#1a1a2a;color:#d4a24e;border:1px solid #333;padding:3px;font-size:11px;width:100%;" onchange="setGenRootFor('A', this.value)">
+          <option value="36">C2</option><option value="43">G2</option>
           <option value="48">C3</option><option value="50">D3</option><option value="52">E3</option>
           <option value="53">F3</option><option value="55">G3</option><option value="57">A3</option>
           <option value="60" selected>C4</option><option value="62">D4</option><option value="64">E4</option>
           <option value="65">F4</option><option value="67">G4</option><option value="69">A4</option>
+          <option value="72">C5</option><option value="76">E5</option><option value="79">G5</option>
         </select>
       </div>
       <div class="param">
         <label>Density <span class="val" id="val-gendensity">0.30</span></label>
-        <input type="range" id="gen-density" min="0.05" max="1" step="0.05" value="0.3" oninput="document.getElementById('val-gendensity').textContent=parseFloat(this.value).toFixed(2)">
+        <input type="range" id="gen-density" min="0.05" max="1" step="0.05" value="0.3" oninput="setGenDensityFor('A', this.value)">
       </div>
       <div class="param">
         <label>Timing <span class="val" id="val-gentiming">fibonacci</span></label>
@@ -1651,6 +1757,8 @@ function getGapSequence(baseGap, count, mode) {
 // ========== TONE SYNTHESIS ==========
 function playTone(freq, time, amplitude, echoIndex, params) {
   if (!audioCtx) return;
+  // MIDI-only mode: engine keeps generating/scheduling/visualizing, internal sine stays silent
+  if (typeof midiOut !== 'undefined' && midiOut && !midiOut.internalAudio) return;
   if (!window._toneCount) window._toneCount = 0;
   window._toneCount++;
   const tc = document.getElementById('tone-counter');
@@ -1784,7 +1892,13 @@ function triggerRipple(freq, noteName, midi, velocity) {
     quantizeDelay = quantizeToBloom(performance.now());
     now += quantizeDelay;
   }
-  
+
+  // MIDI OUT (non-ripple note modes): send the primary strike. Ripple mode sends
+  // the FULL echo train per-tap inside its branch below.
+  if (midi != null && (currentNoteMode === 'harmonic-bloom' || currentNoteMode.startsWith('poly-'))) {
+    midiOutNote(midi, velocity, quantizeDelay * 1000, _midiEnvMs(params), window._noteVoiceTag);
+  }
+
   if (currentNoteMode === 'harmonic-bloom') {
     // === HARMONIC BLOOM MODE ===
     // Cascade through overtone series in Fibonacci timing
@@ -1943,13 +2057,24 @@ function triggerRipple(freq, noteName, midi, velocity) {
   } else {
     // === RIPPLE MODE (original) ===
     const gaps = getGapSequence(params.gap / 1000, params.echoes, params.seq);
-    
-    // Schedule all echoes
+
+    // Schedule all echoes — audio, MIDI-out and the echo graph all read THIS
+    // one sequence (gaps), so what you see == what you hear == what Ableton gets.
     let time = now;
     for (let i = 0; i <= params.echoes; i++) {
       const amp = 0.3 * velGain * Math.pow(params.decay, i);
       playTone(freq, time, amp, i, params);
-      
+
+      // MIDI OUT: every echo tap is its own noteOn with DECAYED velocity —
+      // the fibonacci echo rhythm lands in Ableton as discrete playable notes.
+      if (midi != null) {
+        midiOutNote(midi,
+          velocity * Math.pow(params.decay, i),
+          (time - audioCtx.currentTime) * 1000,
+          _midiEnvMs(params),
+          window._noteVoiceTag);
+      }
+
       if (i < params.echoes) {
         time += gaps[i];
       }
@@ -2008,7 +2133,617 @@ var polyStepA = 0;
 var polyStepB = 0;
 var GEN_FIB = [1, 1, 2, 3, 5, 8, 13, 21, 34];
 var GEN_PHI = 1.618033988749895;
-var GEN_INTERVALS = [0, 2, 4, 5, 7, 12, -12, 14, 16, 19, 24];
+var GEN_INTERVALS = [0, 2, 4, 5, 7, 12, -12, 14, 16, 19, 24]; // legacy (voice engine uses note pools now)
+
+// ===== GEN VOICES — counterpoint architecture =====
+// Two independent generative lines (A gold, B blue). Each voice carries its OWN
+// scale, root, range, motion, recipe, density, timing, burst and chord state.
+// Voice A remains wired to the legacy controls (gen-root / gen-density / genTiming)
+// so presets, the strip and spaciousness keep working — those elements ARE voice A.
+function makeGenVoice(id){
+  return {
+    id,
+    degrees: new Set([0, 2, 4, 7, 9]),   // major pentatonic
+    root: 60,                            // (voice A truth lives in #gen-root — see genVoiceRoot)
+    range: 2,                            // octave span of the note pool (1..4)
+    density: 0.3,                        // (voice A truth lives in #gen-density)
+    timing: 'fibonacci',                 // (voice A truth = genTiming)
+    pattern: 'organic',
+    patIdx: 0, patDir: 1, patBase: 0, patSub: 0,
+    recipe: [], recipeIdx: 0, lastPreset: 'organic',
+    burstSize: 4, burstDir: 'alternate', burstCount: 0,
+    chordOn: false, chordProg: 'I–IV–V–I', chordIdx: 0, chord7: false,
+    step: 0,
+    timer: null,
+    lastNote: '—',
+  };
+}
+var genVoices = { A: makeGenVoice('A'), B: makeGenVoice('B') };
+// Voice B ships contrasting so 2-voice mode is instant counterpoint: high + falling
+genVoices.B.root = 72;
+genVoices.B.pattern = 'descending';
+genVoices.B.lastPreset = 'descending';
+genVoices.B.density = 0.22;
+var genVoiceCount = 1;
+var genEditVoice = 'A';
+function GV(){ return genVoices[genEditVoice]; }
+// Single source of truth per voice — voice A reads the legacy elements so every
+// legacy path (presets, strip, spaciousness) stays live; voice B is pure state.
+function genVoiceRoot(v){
+  if(v.id==='A'){ const el=document.getElementById('gen-root'); if(el && el.value) return parseInt(el.value) || v.root; }
+  return v.root;
+}
+function genVoiceDensity(v){
+  if(v.id==='A'){ const el=document.getElementById('gen-density'); if(el) return parseFloat(el.value)||0.3; }
+  return v.density;
+}
+function genVoiceTiming(v){ return v.id==='A' ? genTiming : v.timing; }
+
+// ===== CONSONANCE-AWARE VOICE LEADING =====
+// Notes here RING — overlapping tails can clash. Track what is still sounding
+// (both voices + cascades) and nudge the next pick away from harsh simultaneous
+// intervals (m2/M7/tritone), toward consonant ones. Gentle: only intervenes on
+// real clashes, and only moves to a NEARBY pool note, so motion shape survives.
+var genConsonanceOn = true;
+var _genSounding = []; // { midi, until (perf.now ms) }
+function genRegisterSounding(midi){
+  const p = getParams();
+  const durMs = Math.min(9000, (p.attack + p.adsrDecay + 0.1 + p.release) * 1000);
+  _genSounding.push({ midi, until: performance.now() + durMs });
+  if(_genSounding.length > 32) _genSounding.shift();
+}
+function _genSoundingNow(){
+  const t = performance.now();
+  _genSounding = _genSounding.filter(n => n.until > t);
+  return _genSounding;
+}
+// score per pitch-class interval: consonant > 0, harsh < 0
+const GEN_IVL_SCORE = [1, -1.2, 0.15, 0.6, 0.7, 0.85, -0.9, 1, 0.6, 0.7, 0.2, -1.1];
+function genApplyConsonance(midi, pool){
+  if(!genConsonanceOn) return midi;
+  const snd = _genSoundingNow();
+  if(!snd.length) return midi;
+  const t = performance.now();
+  const score = m => {
+    let s = 0, wsum = 0;
+    snd.forEach(n => {
+      const w = Math.max(0.15, (n.until - t) / 9000 + 0.15); // fresher notes weigh more
+      s += GEN_IVL_SCORE[Math.abs(m - n.midi) % 12] * w; wsum += w;
+    });
+    return s / wsum;
+  };
+  const s0 = score(midi);
+  if(s0 >= -0.2) return midi;                 // not a real clash — keep the variety
+  const idx = pool.indexOf(midi);
+  let best = midi, bestS = s0;
+  for(let d = 1; d <= 3; d++){
+    [idx - d, idx + d].forEach(j => {
+      if(j >= 0 && j < pool.length){ const s = score(pool[j]); if(s > bestS + 0.01){ best = pool[j]; bestS = s; } }
+    });
+  }
+  return best;
+}
+function toggleGenConsonance(){
+  genConsonanceOn = !genConsonanceOn;
+  const b = document.getElementById('gen-consonance-btn');
+  if(b){
+    b.style.background = genConsonanceOn ? '#3a2f18' : '#12121e';
+    b.style.color = genConsonanceOn ? '#e0b45e' : '#666';
+    b.style.borderColor = genConsonanceOn ? '#c8a44e' : '#2a2a3a';
+  }
+}
+
+// ===== GEN NOTE SELECTOR (SCION-style scale buttons, root-relative degrees) =====
+const GEN_SCALES = {
+  'Maj Pent':[0,2,4,7,9], 'Min Pent':[0,3,5,7,10], 'Major':[0,2,4,5,7,9,11],
+  'Dorian':[0,2,3,5,7,9,10], 'Lydian':[0,2,4,6,7,9,11], 'Phrygian':[0,1,3,5,7,8,10],
+  'Hirajoshi':[0,2,3,7,8], 'Harm Min':[0,2,3,5,7,8,11], 'Whole':[0,2,4,6,8,10],
+  'Chromatic':[0,1,2,3,4,5,6,7,8,9,10,11]
+};
+function genRootPC(){ return genVoiceRoot(GV()) % 12; }
+function genNoteName(m){ return NOTE_NAMES[m % 12] + (Math.floor(m / 12) - 1); }
+// Tap a piano key (by pitch class): toggles that pitch in the edited voice's pool + previews it
+function toggleGenPC(pc){
+  const v = GV();
+  const rootMidi = genVoiceRoot(v);
+  const rootPC = rootMidi % 12;
+  const deg = (pc - rootPC + 12) % 12;                 // internal state stays root-relative
+  const turningOn = !v.degrees.has(deg);
+  if(turningOn) v.degrees.add(deg); else v.degrees.delete(deg);
+  if(v.degrees.size===0) v.degrees.add(0);             // never empty
+  renderGenKeyboard();
+  // poke the scale: hear the note you just added (full ripple — that IS the instrument)
+  if(turningOn){
+    const m = (rootMidi - rootPC) + pc;                // that key, in the root's octave
+    noteOn(m, genNoteName(m), null);
+    flashGenKey(m);
+  }
+}
+function loadGenScale(name){ if(GEN_SCALES[name]) GV().degrees=new Set(GEN_SCALES[name]); renderGenKeyboard(); }
+const GEN_BLACK_PCS = [1,3,6,8,10];
+function _genKeyStyle(pc){
+  const rootPC=genRootPC();
+  const deg=(pc-rootPC+12)%12;
+  const v=GV();
+  const on=v.degrees.has(deg), isRoot=pc===rootPC;
+  const B = genEditVoice==='B'; // voice B tints blue so you always know whose pool you're shaping
+  if(GEN_BLACK_PCS.includes(pc)){
+    return {
+      bg: on ? (isRoot?(B?'#8ba4d4':'#c8a44e'):(B?'#33507e':'#7a5c1e')) : '#1a1a2a',
+      bd: on ? (B?'#a9c4ef':'#e0b45e') : '#000',
+      sh: on ? `0 0 6px rgba(${B?'139,164,212':'224,180,94'},0.6)` : 'none'
+    };
+  }
+  return {
+    bg: on ? (isRoot?(B?'#bcd4f2':'#f0c96e'):(B?'#9db8e0':'#dfb562')) : '#d8d5cc',
+    bd: '#0c0c16',
+    sh: on ? `inset 0 -4px 7px rgba(${B?'60,90,140':'160,120,40'},0.5)` : 'none'
+  };
+}
+// A real mini piano, one octave, chromatic from C (fingers know where C is).
+// Root shown by highlight + a dot, never by reordering.
+function renderGenKeyboard(){
+  const kb=document.getElementById('gen-keyboard'); if(!kb) return;
+  const rootPC=genRootPC();
+  const WW=27, WH=38, BW=16, BH=23;
+  const WHITE_PCS=[0,2,4,5,7,9,11];
+  const BLACK_POS=[[1,1],[3,2],[6,4],[8,5],[10,6]];   // [pc, white-boundary index]
+  const rootDot = (dark)=>`<span style="position:absolute;left:50%;bottom:3px;transform:translateX(-50%);width:4px;height:4px;border-radius:50%;background:${dark?'#0c0c16':'#e0b45e'};display:block;pointer-events:none;"></span>`;
+  let html = `<span style="position:relative; display:inline-block; width:${7*WW}px; height:${WH}px; flex:none;">`;
+  WHITE_PCS.forEach((pc,i)=>{
+    const s=_genKeyStyle(pc), isRoot=pc===rootPC;
+    html += `<button data-genpc="${pc}" onclick="toggleGenPC(${pc})" title="${NOTE_NAMES[pc]} — tap to toggle" style="position:absolute; left:${i*WW}px; top:0; width:${WW}px; height:${WH}px; box-sizing:border-box; z-index:1; border:1px solid ${s.bd}; border-radius:0 0 3px 3px; background:${s.bg}; box-shadow:${s.sh}; cursor:pointer; padding:0; transition:background .18s, box-shadow .25s;">${isRoot?rootDot(true):''}</button>`;
+  });
+  BLACK_POS.forEach(([pc,b])=>{
+    const s=_genKeyStyle(pc), isRoot=pc===rootPC;
+    html += `<button data-genpc="${pc}" onclick="toggleGenPC(${pc})" title="${NOTE_NAMES[pc]} — tap to toggle" style="position:absolute; left:${(b*WW - BW/2).toFixed(1)}px; top:0; width:${BW}px; height:${BH}px; box-sizing:border-box; z-index:2; border:1px solid ${s.bd}; border-radius:0 0 2px 2px; background:${s.bg}; box-shadow:${s.sh}; cursor:pointer; padding:0; transition:background .18s, box-shadow .25s;">${isRoot?rootDot(false):''}</button>`;
+  });
+  html += '</span>';
+  kb.innerHTML = html;
+  const sp=document.getElementById('gen-scale-presets');
+  if(sp && !sp.dataset.built){
+    sp.innerHTML = Object.keys(GEN_SCALES).map(n=>
+      `<button data-genscale="${n}" onclick="loadGenScale('${n}')" style="padding:3px 8px;font-size:9px;font-family:monospace;cursor:pointer;border-radius:3px;border:1px solid #2a2a3a;background:#12121e;color:#888;">${n}</button>`
+    ).join('');
+    sp.dataset.built='1';
+  }
+  // highlight whichever preset matches the current selection (if any)
+  if(sp){
+    const degs = GV().degrees;
+    sp.querySelectorAll('[data-genscale]').forEach(b=>{
+      const s=GEN_SCALES[b.dataset.genscale];
+      const match = s && s.length===degs.size && s.every(d=>degs.has(d));
+      b.style.background = match?'#3a2f18':'#12121e';
+      b.style.color = match?'#e0b45e':'#888';
+      b.style.borderColor = match?'#c8a44e':'#2a2a3a';
+    });
+  }
+}
+// Light up the piano key that is sounding right now
+function flashGenKey(midi){
+  const pc = midi % 12;
+  const btn = document.querySelector(`#gen-keyboard [data-genpc="${pc}"]`);
+  if(!btn) return;
+  btn.style.background = '#ffe9b0';
+  btn.style.boxShadow = '0 0 12px rgba(224,180,94,0.9)';
+  clearTimeout(btn._flashT);
+  btn._flashT = setTimeout(()=>{
+    const s=_genKeyStyle(pc);
+    btn.style.background=s.bg; btn.style.boxShadow=s.sh;
+  }, 300);
+}
+// ===== RANGE — how wide the note pool spans =====
+// 1 oct = root octave only · 2 = root + one up (default, root-centered-upward)
+// 3 = one down + two rows · 4 = the old wide field (one down, two up)
+const GEN_RANGE_OCTS = {1:[0], 2:[0,12], 3:[-12,0,12], 4:[-12,0,12,24]};
+function setGenRange(val){
+  GV().range = Math.max(1, Math.min(4, parseInt(val)||2));
+  const lbl=document.getElementById('gen-range-val');
+  if(lbl) lbl.textContent = GV().range + ' oct';
+}
+// Build the note pool from the voice's active degrees across its RANGE (sorted low->high)
+function genNotePool(voice){
+  voice = voice || GV();
+  const root = genVoiceRoot(voice);
+  const pool=[], octs=GEN_RANGE_OCTS[voice.range] || GEN_RANGE_OCTS[2];
+  voice.degrees.forEach(deg=>octs.forEach(o=>{ const m=root+deg+o; if(m>=24&&m<=96) pool.push(m); }));
+  return (pool.length?pool:[root]).sort((a,b)=>a-b);
+}
+function _nearestInPool(pool, m){
+  let best=pool[0], bd=Infinity;
+  for(const p of pool){ const d=Math.abs(p-m); if(d<bd){ bd=d; best=p; } }
+  return best;
+}
+
+// ===== MOTION MODELS (pattern sequencer over the scale) =====
+const GEN_PATTERNS = [
+  {id:'organic',   label:'~ Organic'},
+  {id:'random',    label:'⚄ Rand'},
+  {id:'ascending', label:'↑ Asc'},
+  {id:'descending',label:'↓ Desc'},
+  {id:'cascade',   label:'∿ Cascade'},
+  {id:'thirds',    label:'3rds'},
+  {id:'fourths',   label:'4ths'},
+  {id:'fifths',    label:'5ths'},
+  {id:'sevenths',  label:'7ths'},
+  {id:'alankar3',  label:'Alankar ↑'},   // Sa Re Ga, Re Ga Ma... (rolling 3 up)
+  {id:'alankar3d', label:'Alankar ↓'},   // rolling 3 down
+  {id:'sagare',    label:'Sa Ga Re'}     // rolling thirds pairs, shifting up
+];
+// motion group shapes for alankar-style rolling patterns
+const GEN_GROUPS = { alankar3:[0,1,2], alankar3d:[0,-1,-2], sagare:[0,2] };
+// ===== MOTION RECIPE (composable): tap moves to build a repeating dance =====
+// values are signed SCALE-DEGREE offsets: ↑1=+1 step, ↑3=+2 (a 3rd), ↑4=+3, ↑5=+4
+const GEN_MOVES = [
+  {label:'↑1', v:1},  {label:'↓1', v:-1},
+  {label:'↑3', v:2},  {label:'↓3', v:-2},
+  {label:'↑4', v:3},  {label:'↓4', v:-3},
+  {label:'↑5', v:4},  {label:'↓5', v:-4},
+  {label:'↑7', v:6},  {label:'↓7', v:-6}
+];
+function setGenPattern(p){
+  const v = GV();
+  v.pattern = p; v.patIdx = 0; v.patDir = 1; v.patBase = 0; v.patSub = 0; v.burstCount = 0;
+  v.lastPreset = p;
+  if(v.recipe.length){ v.recipe = []; v.recipeIdx = 0; } // picking a preset releases the recipe
+  document.querySelectorAll('[data-genpat]').forEach(b=>{
+    const on = b.dataset.genpat===p;
+    b.style.background = on?'#3a2f18':'#12121e';
+    b.style.color = on?'#e0b45e':'#888';
+    b.style.borderColor = on?'#c8a44e':'#2a2a3a';
+  });
+  // phrase controls only steer organic mode — dim them elsewhere
+  const bw=document.getElementById('gen-burst-wrap');
+  if(bw) bw.style.opacity = (p==='organic') ? '1' : '0.35';
+  renderGenRecipe();
+}
+// ===== MOTION RECIPE UI: compose a little dance for the melody =====
+function addGenMove(mv){
+  const v = GV();
+  if(v.recipe.length >= 12) return;                     // keep it a phrase, not an essay
+  v.recipe.push(mv); v.recipeIdx = 0; v.patIdx = 0;
+  renderGenRecipe();
+}
+function removeGenMove(i){
+  const v = GV();
+  v.recipe.splice(i,1); v.recipeIdx = 0;
+  if(!v.recipe.length){ clearGenRecipe(); return; }
+  renderGenRecipe();
+}
+function clearGenRecipe(){
+  const v = GV();
+  v.recipe = []; v.recipeIdx = 0;
+  setGenPattern(v.lastPreset);                          // hand motion back to the preset
+}
+function _genMoveLabel(v){
+  const m = GEN_MOVES.find(m=>m.v===v);
+  return m ? m.label : (v>0 ? '↑'+v : '↓'+(-v));
+}
+function renderGenRecipe(){
+  const recipe = GV().recipe;
+  const tk=document.getElementById('gen-recipe-tokens');
+  if(tk && !tk.dataset.built){
+    tk.innerHTML = GEN_MOVES.map(m=>
+      `<button onclick="addGenMove(${m.v})" title="append ${m.label} to the recipe" style="padding:3px 6px;font-size:9px;font-family:monospace;cursor:pointer;border-radius:3px;border:1px solid #2a2a3a;background:#12121e;color:#888;">${m.label}</button>`
+    ).join('');
+    tk.dataset.built='1';
+  }
+  const ch=document.getElementById('gen-recipe-chips');
+  if(ch){
+    ch.innerHTML = recipe.length
+      ? recipe.map((v,i)=>
+          `<button onclick="removeGenMove(${i})" title="tap to remove" style="padding:3px 7px;font-size:9px;font-family:monospace;cursor:pointer;border-radius:3px;border:1px solid #c8a44e;background:#3a2f18;color:#e0b45e;">${_genMoveLabel(v)}</button>`
+        ).join('')
+      : `<span style="font-size:9px;color:#444;font-style:italic;">tap moves to compose — e.g. ↓1 ↓1 ↑1</span>`;
+  }
+  const clr=document.getElementById('gen-recipe-clear');
+  if(clr) clr.style.display = recipe.length ? 'inline-block' : 'none';
+  // recipe active = presets step back; phrase controls too (recipe owns the motion)
+  document.querySelectorAll('[data-genpat]').forEach(b=>{ b.style.opacity = recipe.length ? '0.35' : '1'; });
+  const bw=document.getElementById('gen-burst-wrap');
+  if(bw && recipe.length) bw.style.opacity = '0.35';
+}
+// Build the Motion button row from GEN_PATTERNS
+function renderGenMotion(){
+  const el=document.getElementById('gen-motion-btns'); if(!el) return;
+  if(!el.dataset.built){
+    el.innerHTML = GEN_PATTERNS.map(pt=>
+      `<button data-genpat="${pt.id}" onclick="setGenPattern('${pt.id}')" style="padding:3px 8px;font-size:9px;font-family:monospace;cursor:pointer;border-radius:3px;border:1px solid #2a2a3a;background:#12121e;color:#888;white-space:nowrap;">${pt.label}</button>`
+    ).join('');
+    el.dataset.built='1';
+  }
+  // apply active highlight WITHOUT resetting state (an active recipe must survive re-renders)
+  const v = GV();
+  document.querySelectorAll('[data-genpat]').forEach(b=>{
+    const on = b.dataset.genpat===v.pattern;
+    b.style.background = on?'#3a2f18':'#12121e';
+    b.style.color = on?'#e0b45e':'#888';
+    b.style.borderColor = on?'#c8a44e':'#2a2a3a';
+  });
+  const bw=document.getElementById('gen-burst-wrap');
+  if(bw) bw.style.opacity = (v.pattern==='organic' && !v.recipe.length) ? '1' : '0.35';
+  renderGenRecipe();
+}
+function setGenBurstSize(n){
+  GV().burstSize = Math.max(2, Math.min(8, parseInt(n)||4));
+  const lbl=document.getElementById('gen-burst-size-val');
+  if(lbl) lbl.textContent = GV().burstSize;
+  renderGenPhraseShape();
+}
+function setGenBurstDir(d){
+  GV().burstDir = d;
+  _highlightBurstDir();
+  renderGenPhraseShape();
+}
+function _highlightBurstDir(){
+  const d = GV().burstDir;
+  document.querySelectorAll('[data-burstdir]').forEach(b=>{
+    const on = b.dataset.burstdir===d;
+    b.style.background = on?'#3a2f18':'#12121e';
+    b.style.color = on?'#e0b45e':'#888';
+    b.style.borderColor = on?'#c8a44e':'#2a2a3a';
+  });
+}
+// Tiny living picture of one phrase: N bars sloped by direction; the sounding bar glows
+function renderGenPhraseShape(activeIdx){
+  const el=document.getElementById('gen-phrase-shape'); if(!el) return;
+  const v=GV();
+  const n=v.burstSize;
+  el.innerHTML = Array.from({length:n},(_,i)=>{
+    let y; // 0 = low, 1 = high
+    if(v.burstDir==='asc') y = n>1 ? i/(n-1) : 1;
+    else if(v.burstDir==='desc') y = n>1 ? 1 - i/(n-1) : 1;
+    else if(v.burstDir==='alternate'){ const half=(n-1)/2; y = half>0 ? 1 - Math.abs(i-half)/half : 1; }
+    else y = ((i*7919 + n*104729) % 13) / 12; // deterministic scatter
+    const hot = i===activeIdx;
+    const h = 3 + y*10;
+    return `<span style="width:3px;height:${h.toFixed(0)}px;border-radius:1px;display:inline-block;background:${hot?'#e0b45e':'#3a2f18'};box-shadow:${hot?'0 0 6px rgba(224,180,94,.8)':'none'};transition:background .15s;"></span>`;
+  }).join('');
+}
+// Next MIDI note for a VOICE based on its motion model (consonance-filtered)
+function genNextMidi(voice){
+  voice = voice || GV();
+  const pool = genNotePool(voice);
+  const n = pool.length;
+  if(n<=1) return pool[0];
+  // custom MOTION RECIPE takes over when present: loop the composed moves forever
+  if(voice.recipe.length){
+    const mv = voice.recipe[voice.recipeIdx % voice.recipe.length];
+    voice.recipeIdx++;
+    voice.patIdx += mv;
+    // bounce gracefully at the pool edges (reflect, like cascade does)
+    if(voice.patIdx >= n) voice.patIdx = Math.max(0, 2*(n-1) - voice.patIdx);
+    if(voice.patIdx < 0)  voice.patIdx = Math.min(n-1, -voice.patIdx);
+    return genApplyConsonance(pool[voice.patIdx], pool);
+  }
+  // rolling alankar-style groups
+  if(GEN_GROUPS[voice.pattern]){
+    const grp = GEN_GROUPS[voice.pattern];
+    let idx = voice.patBase + grp[voice.patSub];
+    idx = Math.max(0, Math.min(n-1, idx));
+    voice.patSub++;
+    if(voice.patSub >= grp.length){
+      voice.patSub = 0;
+      const dir = voice.pattern==='alankar3d' ? -1 : 1;
+      voice.patBase += dir;
+      const span = Math.max(...grp.map(Math.abs));
+      if(voice.patBase + span >= n || voice.patBase < 0) voice.patBase = dir>0 ? 0 : n-1-span;
+    }
+    return genApplyConsonance(pool[idx], pool);
+  }
+  switch(voice.pattern){
+    case 'organic': {
+      // within a burst: mostly steps, occasional 3rd/4th/5th leaps, in the burst direction
+      const r = Math.random();
+      let step = r<0.55 ? 1 : r<0.75 ? 2 : r<0.88 ? 3 : 4; // step / 3rd / 4th / 5th
+      voice.patIdx += voice.patDir*step;
+      if(voice.patIdx>=n){ voice.patIdx=n-1; voice.patDir=-1; }
+      if(voice.patIdx<0){ voice.patIdx=0; voice.patDir=1; }
+      voice.burstCount++;
+      if(voice.burstCount >= voice.burstSize){ // end of phrase -> new burst
+        voice.burstCount = 0;
+        if(voice.burstDir==='asc') voice.patDir=1;
+        else if(voice.burstDir==='desc') voice.patDir=-1;
+        else if(voice.burstDir==='alternate') voice.patDir*=-1;
+        else voice.patDir = Math.random()<0.5?1:-1;
+        voice.patIdx = Math.max(0, Math.min(n-1, voice.patIdx + voice.patDir*(1+Math.floor(Math.random()*3))));
+      }
+      break;
+    }
+    case 'random':     voice.patIdx = Math.floor(Math.random()*n); break;
+    case 'ascending':  voice.patIdx = (voice.patIdx+1)%n; break;
+    case 'descending': voice.patIdx = (voice.patIdx-1+n)%n; break;
+    case 'thirds':     voice.patIdx = (voice.patIdx+2)%n; break; // skip 1 scale degree
+    case 'fourths':    voice.patIdx = (voice.patIdx+3)%n; break;
+    case 'fifths':     voice.patIdx = (voice.patIdx+4)%n; break;
+    case 'sevenths':   voice.patIdx = (voice.patIdx+6)%n; break; // leap by scale 7ths
+    case 'cascade':
+      voice.patIdx += voice.patDir;
+      if(voice.patIdx>=n-1){ voice.patIdx=n-1; voice.patDir=-1; }
+      else if(voice.patIdx<=0){ voice.patIdx=0; voice.patDir=1; }
+      break;
+    default: voice.patIdx = Math.floor(Math.random()*n);
+  }
+  if(voice.patIdx>=n) voice.patIdx%=n; if(voice.patIdx<0) voice.patIdx=0;
+  return genApplyConsonance(pool[voice.patIdx], pool);
+}
+
+// ===== CHORD PROGRESSION MODE (v0 prototype) =====
+// A voice can walk a diatonic progression instead of single notes. Chords are
+// stacked scale-thirds over the ACTIVE degree set, folded into the voice's range,
+// gently arpeggiated through the ripple voice so it stays ambient.
+const GEN_PROGS = {
+  'I–IV–V–I':  ['I','IV','V','I'],
+  'I–V–vi–IV': ['I','V','vi','IV'],
+  'ii–V–I':    ['ii','V','I'],
+  'i–iv–v':    ['i','iv','v'],
+  'vi–IV–I–V': ['vi','IV','I','V'],
+  'I–vi–ii–V': ['I','vi','ii','V']
+};
+const GEN_ROMAN_DEG = {i:0,I:0,ii:1,II:1,iii:2,III:2,iv:3,IV:3,v:4,V:4,vi:5,VI:5,vii:6,VII:6};
+function genChordMidis(voice){
+  const D=[...voice.degrees].sort((a,b)=>a-b), L=D.length;
+  const prog = GEN_PROGS[voice.chordProg] || GEN_PROGS['I–IV–V–I'];
+  const token = prog[voice.chordIdx % prog.length];
+  voice.chordIdx++;
+  const base = (GEN_ROMAN_DEG[token]||0) % L;
+  const steps = voice.chord7 ? [0,2,4,6] : [0,2,4]; // triad or 7th chord, in scale-space
+  const root = genVoiceRoot(voice);
+  const pool = genNotePool(voice);
+  const seen = new Set(), out=[];
+  steps.forEach(k=>{
+    const di = base+k;
+    let m = root + D[di%L] + 12*Math.floor(di/L);
+    m = _nearestInPool(pool, m);                       // respect the RANGE
+    if(!seen.has(m)){ seen.add(m); out.push(m); }
+  });
+  return { token, midis: out.sort((a,b)=>a-b) };
+}
+function toggleGenChords(){
+  const v=GV(); v.chordOn = !v.chordOn; v.chordIdx = 0;
+  _syncChordUI();
+}
+function toggleGenChord7(){ GV().chord7 = !GV().chord7; _syncChordUI(); }
+function setGenChordProg(p){ GV().chordProg = p; GV().chordIdx = 0; }
+function _syncChordUI(){
+  const v=GV();
+  const b=document.getElementById('gen-chord-btn');
+  if(b){
+    b.textContent = v.chordOn ? '● on' : '○ off';
+    b.style.background = v.chordOn ? '#3a2f18' : '#12121e';
+    b.style.color = v.chordOn ? '#e0b45e' : '#666';
+    b.style.borderColor = v.chordOn ? '#c8a44e' : '#2a2a3a';
+  }
+  const b7=document.getElementById('gen-chord7-btn');
+  if(b7){
+    b7.style.background = v.chord7 ? '#3a2f18' : '#12121e';
+    b7.style.color = v.chord7 ? '#e0b45e' : '#666';
+    b7.style.borderColor = v.chord7 ? '#c8a44e' : '#2a2a3a';
+  }
+  const sel=document.getElementById('gen-chord-prog');
+  if(sel) sel.value = v.chordProg;
+}
+
+// ===== VOICE PANEL — the "2 HUDs": one edit surface, swappable per voice =====
+function setGenEditVoice(id){
+  genEditVoice = (id==='B') ? 'B' : 'A';
+  renderGenVoicePanel();
+}
+function setGenVoiceCount(n){
+  genVoiceCount = (n===2) ? 2 : 1;
+  if(genVoiceCount===1){
+    if(genVoices.B.timer){ clearTimeout(genVoices.B.timer); genVoices.B.timer=null; }
+    if(genEditVoice==='B') genEditVoice='A';
+  } else if(genActive && !genTiming.startsWith('poly-') && !genVoices.B.timer){
+    scheduleGenVoice(genVoices.B);   // voice B joins a running session live
+  }
+  renderGenVoicePanel();
+}
+function genUpdateHud(voice, text){
+  voice.lastNote = text;
+  const el=document.getElementById('gen-hud-'+voice.id.toLowerCase());
+  if(el){
+    el.textContent = text;
+    el.style.textShadow = voice.id==='B' ? '0 0 10px rgba(139,164,212,0.9)' : '0 0 10px rgba(224,180,94,0.9)';
+    clearTimeout(el._t);
+    el._t = setTimeout(()=>{ el.style.textShadow='none'; }, 300);
+  }
+}
+// Root / density / timing setters — ONE source of truth, every mirror updated
+function setGenRootFor(voiceId, val){
+  const m = parseInt(val)||60;
+  genVoices[voiceId].root = m;
+  if(voiceId==='A'){
+    // voice A's truth is #gen-root — update it and every visible mirror
+    const r=document.getElementById('gen-root'); if(r) r.value=String(m);
+    document.querySelectorAll('[id="s-gen-root"]').forEach(el=>{ el.value=String(m); });
+    const lbl=document.getElementById('val-genroot'); if(lbl) lbl.textContent = genNoteName(m);
+  }
+  if(voiceId===genEditVoice){
+    const sel=document.getElementById('s-gen-root'); if(sel) sel.value=String(m);
+    renderGenKeyboard();
+  }
+}
+function setGenDensityFor(voiceId, val){
+  const d = Math.max(0.05, Math.min(1, parseFloat(val)||0.3));
+  genVoices[voiceId].density = d;
+  if(voiceId==='A'){
+    const el=document.getElementById('gen-density'); if(el) el.value=d;
+    const lbl=document.getElementById('val-gendensity'); if(lbl) lbl.textContent=d.toFixed(2);
+    document.querySelectorAll('[id="s-gen-density"]').forEach(el=>{ el.value=d; });
+    const sv=document.getElementById('sv-gendensity'); if(sv) sv.textContent=d.toFixed(2);
+  }
+  if(voiceId===genEditVoice){
+    const lbl=document.getElementById('gen-tab-density-val'); if(lbl) lbl.textContent=d.toFixed(2);
+  }
+}
+function setGenTiming(t){
+  if(genEditVoice==='A'){
+    genTiming = t;
+    const lbl=document.getElementById('val-gentiming'); if(lbl) lbl.textContent=t;
+  } else {
+    genVoices.B.timing = t;
+  }
+  document.querySelectorAll('#gen-tab-controls [data-gentiming]').forEach(b=>
+    b.classList.toggle('active', b.dataset.gentiming===t));
+}
+// Repaint the whole edit surface from the voice being edited
+function renderGenVoicePanel(){
+  const v = GV();
+  // voice count + edit selector
+  [['gen-vc-1',1],['gen-vc-2',2]].forEach(([id,n])=>{
+    const b=document.getElementById(id); if(!b) return;
+    const on = genVoiceCount===n;
+    b.style.background = on?'#3a2f18':'#12121e';
+    b.style.color = on?'#e0b45e':'#666';
+    b.style.borderColor = on?'#c8a44e':'#2a2a3a';
+  });
+  [['gen-edit-a','A'],['gen-edit-b','B']].forEach(([id,vid])=>{
+    const b=document.getElementById(id); if(!b) return;
+    const on = genEditVoice===vid;
+    const hue = vid==='B' ? '#8ba4d4' : '#e0b45e';
+    b.style.background = on ? (vid==='B'?'#1e2a3f':'#3a2f18') : '#12121e';
+    b.style.color = on ? hue : '#666';
+    b.style.borderColor = on ? (vid==='B'?'#8ba4d4':'#c8a44e') : '#2a2a3a';
+  });
+  const ew=document.getElementById('gen-edit-wrap');
+  if(ew) ew.style.display = genVoiceCount>1 ? 'inline-flex' : 'none';
+  const hb=document.getElementById('gen-hud-b');
+  if(hb) hb.style.display = genVoiceCount>1 ? 'inline' : 'none';
+  // root / density / range / timing
+  const rootSel=document.getElementById('s-gen-root');
+  if(rootSel) rootSel.value = String(genVoiceRoot(v));
+  const d = genVoiceDensity(v);
+  const dEl=document.getElementById('s-gen-density'); if(dEl) dEl.value = d;
+  const dLbl=document.getElementById('gen-tab-density-val'); if(dLbl) dLbl.textContent = d.toFixed(2);
+  const rEl=document.getElementById('gen-range'); if(rEl) rEl.value = v.range;
+  const rLbl=document.getElementById('gen-range-val'); if(rLbl) rLbl.textContent = v.range + ' oct';
+  const t = genVoiceTiming(v);
+  document.querySelectorAll('#gen-tab-controls [data-gentiming]').forEach(b=>
+    b.classList.toggle('active', b.dataset.gentiming===t));
+  // burst
+  const bs=document.getElementById('gen-burst-size'); if(bs) bs.value = v.burstSize;
+  const bsl=document.getElementById('gen-burst-size-val'); if(bsl) bsl.textContent = v.burstSize;
+  _highlightBurstDir();
+  // consonance
+  const cb=document.getElementById('gen-consonance-btn');
+  if(cb){
+    cb.style.background = genConsonanceOn ? '#3a2f18' : '#12121e';
+    cb.style.color = genConsonanceOn ? '#e0b45e' : '#666';
+    cb.style.borderColor = genConsonanceOn ? '#c8a44e' : '#2a2a3a';
+  }
+  // chords
+  const progSel=document.getElementById('gen-chord-prog');
+  if(progSel && !progSel.dataset.built){
+    progSel.innerHTML = Object.keys(GEN_PROGS).map(k=>`<option value="${k}">${k}</option>`).join('');
+    progSel.dataset.built='1';
+  }
+  _syncChordUI();
+  // keyboard + motion + recipe + phrase (all read GV())
+  renderGenKeyboard();
+  renderGenMotion();
+  renderGenPhraseShape();
+}
 
 // ========== VISUALIZATION ==========
 const canvas = document.getElementById('vizCanvas');
@@ -2198,6 +2933,243 @@ function _vizConsonance(freq1, freq2) {
 // Track which ripples have already emitted particles
 // (_vizEmittedRipples and _vizLastFrame declared above resizeCanvas)
 
+// ===== GEN MODE: ONE living spiral — the session's energy, centered =====
+// A single golden log spiral (r grows by φ per quarter turn) lives at the
+// center of the screen. It is a living energy system: every note/echo FEEDS it
+// — pushing the drawing further along the curve and re-brightening it — while
+// time drains it gracefully toward embers. Because the curve is self-similar,
+// growth renders as a seamless inward turn: the spiral never ends, it echoes
+// into itself. Notes land as pearls at the growing head and sink inward as the
+// music draws the form onward. Dense passages = bright, vividly drawing;
+// silence = it dims and slows. The music keeps it alive.
+var _genTabActive = false;         // set by switchTab (drawFrame runs before that code parses)
+var _genSpiralNotes = [];          // pearls: { midi, born, theta }
+var _genSpiralNextAt = 0;          // performance.now() when the next gen note lands
+var _genSpiralNextSet = 0;         // when that countdown began
+var _genSpiralHead = 18;           // how far the curve has been drawn (spiral radians; seeded so the full form is present)
+var _genSpiralHeadTarget = 18;     // eased toward — each note pushes this forward
+var _genSpiralEnergy = 0;          // 0..1 living energy — notes feed it, time drains it
+var _genSpiralHeat = 0;            // head flare right after being fed
+
+function genSpiralNoteLanded(midi, voiceId) {
+  _genSpiralHeadTarget += (Math.PI / 2) * 0.45;               // each echo DRAWS the spiral onward
+  _genSpiralEnergy = Math.min(1, _genSpiralEnergy + 0.28);    // and feeds its energy
+  _genSpiralHeat = 1;
+  _genSpiralNotes.push({ midi, born: performance.now(), theta: _genSpiralHeadTarget, v: voiceId || 'A' });
+  if (_genSpiralNotes.length > 80) _genSpiralNotes.shift();
+  _genSpiralNextAt = 0;
+}
+
+function _drawGenSpiral(w, h, now, timeSec, dt) {
+  const cx = w / 2, cy = h / 2;
+  const QT = Math.PI / 2;
+  const Rview = Math.min(w, h) * 0.36;                        // the head's fixed screen radius
+
+  // — living-system update: perpetual crawl ∝ energy, notes push the head,
+  //   energy drains gracefully (τ≈16s), the flare cools fast
+  _genSpiralHeadTarget += dt * 0.010 * (0.2 + _genSpiralEnergy);
+  _genSpiralHead += (_genSpiralHeadTarget - _genSpiralHead) * Math.min(1, dt * 1.6);
+  _genSpiralEnergy *= Math.exp(-dt / 20);                     // slow drain — ambient tempos keep it alive
+  _genSpiralHeat *= Math.exp(-dt / 1.2);
+  const E = _genSpiralEnergy, HEAT = _genSpiralHeat;
+
+  const headAngle = -Math.PI / 2 + timeSec * 0.008;           // head rests near the top; whole form turns very slowly
+  const rOf = dthRel => Rview * Math.pow(PHI, dthRel / QT);   // dthRel ≤ 0 (0 = head)
+
+  ctx.save();
+
+  // ——— golden-rectangle scaffold, glued to the drawing — sinks inward as it grows ———
+  const drift = ((_genSpiralHead % QT) + QT) % QT;
+  for (let k = 0; k < 8; k++) {
+    const dthRel = -(k * QT + drift);
+    const rk = rOf(dthRel);
+    if (rk < 6) break;
+    const edgeFade = k === 0 ? drift / QT : 1;                // new frame fades in at the rim
+    const alpha = (0.05 + 0.09 * E) * edgeFade * Math.min(1, rk / 40 + 0.3);
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(headAngle + dthRel);
+    ctx.strokeStyle = `rgba(200, 164, 78, ${alpha})`;
+    ctx.lineWidth = 0.7;
+    ctx.strokeRect(0, -rk / PHI, rk, rk / PHI);
+    ctx.restore();
+  }
+
+  // ——— the ONE spiral: ember base + energy glow, the newest arc brightest ———
+  const quarters = Math.log(Rview / 0.8) / Math.log(PHI);     // visible until r < ~1px
+  const dthMin = -Math.min(_genSpiralHead, quarters * QT);
+  const CHUNKS = 9;
+  for (let c = 0; c < CHUNKS; c++) {
+    const a0 = dthMin * (1 - c / CHUNKS);
+    const a1 = dthMin * (1 - (c + 1) / CHUNKS);               // a1 is nearer the head
+    ctx.beginPath();
+    let first = true;
+    for (let dth = a0; dth <= a1 + 1e-9; dth += 0.035) {
+      const r = rOf(dth), a = headAngle + dth;
+      first ? ctx.moveTo(cx + Math.cos(a) * r, cy + Math.sin(a) * r)
+            : ctx.lineTo(cx + Math.cos(a) * r, cy + Math.sin(a) * r);
+      first = false;
+    }
+    const toHead = (c + 1) / CHUNKS;
+    const emberBreath = 1 + 0.10 * Math.sin(timeSec * 0.5 + c);
+    // resting form is ALWAYS visible (ember base ~0.12 at the head even at zero
+    // energy) — a spiral that vanishes reads as broken, not asleep
+    const alpha = Math.min(0.95,
+      ((0.09 + 0.06 * E) + (0.14 + 0.50 * E + 0.35 * HEAT) * toHead * toHead) * emberBreath);
+    ctx.strokeStyle = `rgba(212, 162, 78, ${alpha})`;
+    ctx.lineWidth = 0.7 + (0.7 + 1.2 * E + 0.6 * HEAT) * toHead;
+    ctx.stroke();
+  }
+
+  // ——— the head: a breathing ember that flares when fed ———
+  const hx = cx + Math.cos(headAngle) * Rview;
+  const hy = cy + Math.sin(headAngle) * Rview;
+  const breathe = 0.5 + 0.5 * Math.sin(timeSec * 1.1);
+  const glow = 0.16 + 0.30 * E + 0.45 * HEAT + 0.12 * breathe * (0.3 + E);
+  const hr = 4 + 3 * breathe + 5 * HEAT;
+  const hg = ctx.createRadialGradient(hx, hy, 0, hx, hy, hr * 2.6);
+  hg.addColorStop(0, `rgba(255, 240, 210, ${Math.min(0.85, glow)})`);
+  hg.addColorStop(0.5, `rgba(224, 180, 94, ${Math.min(0.5, glow * 0.45)})`);
+  hg.addColorStop(1, 'rgba(212, 162, 78, 0)');
+  ctx.beginPath();
+  ctx.arc(hx, hy, hr * 2.6, 0, Math.PI * 2);
+  ctx.fillStyle = hg;
+  ctx.fill();
+
+  // ——— comet: the next note arriving to feed the spiral ———
+  if (genActive && _genSpiralNextAt > now && _genSpiralNextAt > _genSpiralNextSet) {
+    const p = Math.max(0, Math.min(1, 1 - (_genSpiralNextAt - now) / (_genSpiralNextAt - _genSpiralNextSet)));
+    const lead = (1 - p) * 0.9;                               // rides in from beyond the head
+    for (let t = 0; t < 4; t++) {                             // bright head + fading tail
+      const dth = lead + t * 0.07;
+      const r = rOf(dth), a = headAngle + dth;
+      const al = (0.15 + 0.55 * p) * (1 - t / 4);
+      ctx.beginPath();
+      ctx.arc(cx + Math.cos(a) * r, cy + Math.sin(a) * r, 2.5 - t * 0.4, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(255, 235, 200, ${al})`;
+      ctx.fill();
+    }
+  }
+
+  // ——— pearls: each note resting where it landed, sinking inward as the form grows ———
+  for (let i = _genSpiralNotes.length - 1; i >= 0; i--) {
+    const pn = _genSpiralNotes[i];
+    const age = (now - pn.born) / 1000;
+    const dthRel = Math.min(0, pn.theta - _genSpiralHead);
+    const r = rOf(dthRel);
+    if (r < 3 || age > 300) { _genSpiralNotes.splice(i, 1); continue; }
+    const a = headAngle + dthRel;
+    const x = cx + Math.cos(a) * r, y = cy + Math.sin(a) * r;
+
+    const life = Math.max(0, 1 - age / 300);                  // long echo trail
+    const nearCenter = Math.min(1, (r - 3) / 20);             // dissolve into the heart
+    const alpha = (0.08 + 0.70 * life * (0.35 + 0.65 * E)) * nearCenter;
+    const size = 1.6 + Math.min(2.6, r / 55) + ((pn.midi - 48) / 36) * 0.7;
+
+    // voice hue: A walks the spiral in gold, B in a cool blue — two lines, one form
+    const _isB = pn.v === 'B';
+    const _cRing = _isB ? '139, 164, 212' : '224, 180, 94';
+    const _cHalo = _isB ? '160, 190, 235' : '232, 192, 112';
+    const _cCore = _isB ? '225, 238, 255' : '255, 240, 210';
+
+    if (age < 1.6) {
+      // birth bloom: ring from the landing point + its golden rectangle flashes
+      const bp = age / 1.6;
+      ctx.beginPath();
+      ctx.arc(x, y, 4 + bp * 44, 0, Math.PI * 2);
+      ctx.strokeStyle = `rgba(${_cRing}, ${(1 - bp) * 0.45})`;
+      ctx.lineWidth = 1.2;
+      ctx.stroke();
+      if (age < 0.8) {
+        ctx.save();
+        ctx.translate(cx, cy);
+        ctx.rotate(a);
+        ctx.strokeStyle = `rgba(${_cHalo}, ${(1 - age / 0.8) * 0.4})`;
+        ctx.lineWidth = 1;
+        ctx.strokeRect(0, -r / PHI, r, r / PHI);
+        ctx.restore();
+      }
+    }
+
+    const halo = ctx.createRadialGradient(x, y, 0, x, y, size * 3);
+    halo.addColorStop(0, `rgba(${_cHalo}, ${alpha * 0.5})`);
+    halo.addColorStop(1, 'rgba(212, 162, 78, 0)');
+    ctx.beginPath();
+    ctx.arc(x, y, size * 3, 0, Math.PI * 2);
+    ctx.fillStyle = halo;
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(x, y, size, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(${_cCore}, ${alpha})`;
+    ctx.fill();
+  }
+
+  ctx.restore();
+}
+
+// The linear echo graph: each echo tap is a dot on a left→right time axis,
+// dot size/brightness = that tap's decaying amplitude, playhead sweeps through.
+function _drawEchoTimeline(ripple, w, h, now) {
+  const elapsed = (now - ripple.startTime) / 1000;
+  const decay = ripple.params.decay;
+  const gaps = ripple.gaps;
+  const echoes = ripple.echoes;
+
+  let echoTime = 0;
+  const echoTimes = [0];
+  for (let i = 0; i < gaps.length; i++) { echoTime += gaps[i]; echoTimes.push(echoTime); }
+  let totalDur = echoTime;
+
+  const timelineY = h - 20;
+  const timelineScale = (w - 20) / (totalDur + 1);
+
+  // faint baseline so the graph reads as a lane
+  ctx.beginPath();
+  ctx.moveTo(10, timelineY);
+  ctx.lineTo(w - 10, timelineY);
+  ctx.strokeStyle = 'rgba(200, 164, 78, 0.10)';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+
+  for (let i = 0; i <= echoes; i++) {
+    const tx = echoTimes[i] * timelineScale + 10;
+    const tAlpha = (elapsed > echoTimes[i] ? 0.8 : 0.2);
+    const amp = Math.pow(decay, i);
+
+    // amplitude stem — the decay envelope made visible
+    ctx.beginPath();
+    ctx.moveTo(tx, timelineY);
+    ctx.lineTo(tx, timelineY - 4 - amp * 14);
+    ctx.strokeStyle = `rgba(212, 162, 78, ${tAlpha * amp * 0.6})`;
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.arc(tx, timelineY, 3 * amp + 1, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(212, 162, 78, ${tAlpha * amp})`;
+    ctx.fill();
+
+    if (i < gaps.length && i < echoTimes.length - 1) {
+      const nextTx = echoTimes[i + 1] * timelineScale + 10;
+      ctx.font = '8px Courier New';
+      ctx.fillStyle = `rgba(100, 80, 40, ${tAlpha * 0.5})`;
+      const label = ripple.params.seq === 'fibonacci' ? `F${FIB[i]}` : ripple.params.seq === 'golden' ? `φ${i+1}` : `${i+1}`;
+      ctx.fillText(label, (tx + nextTx) / 2 - 6, timelineY - 6);
+    }
+  }
+
+  // Playhead
+  const playheadX = elapsed * timelineScale + 10;
+  if (playheadX < w && elapsed < totalDur + 1) {
+    ctx.beginPath();
+    ctx.moveTo(playheadX, timelineY - 8);
+    ctx.lineTo(playheadX, timelineY + 8);
+    ctx.strokeStyle = 'rgba(232, 192, 112, 0.7)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+  }
+}
+
 function drawFrame() {
   const w = canvas.width / window.devicePixelRatio;
   const h = canvas.height / window.devicePixelRatio;
@@ -2220,8 +3192,15 @@ function drawFrame() {
     if (elapsed > totalDur + 4) { activeRipples.splice(r, 1); }
   }
 
+  // ——— GEN MODE: the one living spiral, fed by the music ———
+  // Draw whenever the generative engine is RUNNING (started from ANY control —
+  // gen tab, strip, or deep-dive panel) or the gen tab is open. Gen notes are
+  // tagged _genNote and live on this spiral, so it must draw wherever they play.
+  if (_genTabActive || genActive) _drawGenSpiral(w, h, now, timeSec, dt);
+
   // ——— For each ripple: draw the fibonacci spiral building itself ———
   for (const ripple of activeRipples) {
+    if (ripple._genNote) continue; // gen notes live on the ONE spiral instead
     const elapsed = (now - ripple.startTime) / 1000;
     const decay = ripple.params.decay;
     const gaps = ripple.gaps;
@@ -2239,19 +3218,20 @@ function drawFrame() {
       echoTimes.push(echoTime);
     }
 
-    // ——— FIBONACCI SPIRAL: draws itself as echoes fire ———
-    // Classic fibonacci rectangle spiral: each arc is a quarter-circle
-    // whose radius is the fibonacci number, chaining from corner to corner
-    const baseScale = Math.min(w, h) * 0.06;
+    // ——— FIBONACCI SHELL: golden rectangles + connected quarter-arc spiral ———
+    // Classic nautilus construction: each echo adds one fibonacci square and
+    // the quarter-circle arc inscribed in it. Arc i runs startAngle→endAngle
+    // around center C; chaining C += (F(i) − F(i+1))·û(endAngle) guarantees
+    // each arc's end meets the next arc's start, so the shell stays whole.
+    // Scaled so the finished shell fits the canvas.
+    const maxFib = FIB[Math.min(echoes, FIB.length - 1)];
+    let baseScale = Math.min(w, h) * 0.5 / (maxFib * 1.7);
+    baseScale = Math.max(0.8, Math.min(baseScale, Math.min(w, h) * 0.07));
 
     ctx.save();
     ctx.translate(rx, ry);
 
-    // Build the fibonacci rectangle spiral centers
-    // Each quarter-turn, the center shifts to the next corner
-    // Directions cycle: right, up, left, down (corners of growing golden rectangle)
-    const dirs = [[1,0],[0,-1],[-1,0],[0,1]]; // dx, dy for each quarter turn
-    let acx = 0, acy = 0; // accumulated center offset
+    let acx = 0, acy = 0; // center of the current quarter arc
 
     for (let i = 0; i <= echoes; i++) {
       const echoElapsed = elapsed - echoTimes[i];
@@ -2259,107 +3239,93 @@ function drawFrame() {
 
       const amp = Math.pow(decay, i);
       const alpha = amp * Math.max(0, 1 - echoElapsed / 5);
-      if (alpha < 0.003) continue;
 
       const fibVal = FIB[Math.min(i, FIB.length - 1)];
       const fibRadius = fibVal * baseScale;
       const startAngle = i * Math.PI / 2;
       const endAngle = startAngle + Math.PI / 2;
+      const sx = Math.cos(startAngle), sy = Math.sin(startAngle);
+      const ex = Math.cos(endAngle), ey = Math.sin(endAngle);
 
-      // Animated draw-in
-      const drawProgress = Math.min(1, echoElapsed / 0.5);
-      const currentEnd = startAngle + (endAngle - startAngle) * drawProgress;
+      if (alpha >= 0.003) {
+        // Animated draw-in
+        const drawProgress = Math.min(1, echoElapsed / 0.5);
+        const currentEnd = startAngle + (endAngle - startAngle) * drawProgress;
 
-      // Draw the arc segment
-      ctx.beginPath();
-      ctx.arc(acx, acy, fibRadius, startAngle, currentEnd);
-      ctx.lineWidth = Math.max(0.5, 4 * amp);
-      ctx.strokeStyle = `rgba(212, 162, 78, ${alpha * 0.9})`;
-      ctx.stroke();
+        // Golden rectangle (fibonacci square) framing this quarter arc —
+        // corners: C, C+F·û(start), C+F·(û(start)+û(end)), C+F·û(end)
+        ctx.beginPath();
+        ctx.moveTo(acx, acy);
+        ctx.lineTo(acx + sx * fibRadius, acy + sy * fibRadius);
+        ctx.lineTo(acx + (sx + ex) * fibRadius, acy + (sy + ey) * fibRadius);
+        ctx.lineTo(acx + ex * fibRadius, acy + ey * fibRadius);
+        ctx.closePath();
+        ctx.strokeStyle = `rgba(200, 164, 78, ${alpha * 0.25 * drawProgress})`;
+        ctx.lineWidth = 0.7;
+        ctx.stroke();
 
-      // Bright leading dot
-      if (drawProgress < 1 || echoElapsed < 0.8) {
-        const dotProgress = drawProgress < 1 ? drawProgress : Math.max(0, 1 - (echoElapsed - 0.5) / 0.3);
-        const dotAngle = drawProgress < 1 ? currentEnd : endAngle;
-        const dotX = acx + Math.cos(dotAngle) * fibRadius;
-        const dotY = acy + Math.sin(dotAngle) * fibRadius;
-        const dotSize = 10 * amp * dotProgress;
-        if (dotSize > 0.5) {
-          const dotGrad = ctx.createRadialGradient(dotX, dotY, 0, dotX, dotY, dotSize);
-          dotGrad.addColorStop(0, `rgba(255, 240, 210, ${alpha * dotProgress})`);
-          dotGrad.addColorStop(0.5, `rgba(232, 192, 112, ${alpha * dotProgress * 0.5})`);
-          dotGrad.addColorStop(1, `rgba(212, 162, 78, 0)`);
+        // Draw the arc segment
+        ctx.beginPath();
+        ctx.arc(acx, acy, fibRadius, startAngle, currentEnd);
+        ctx.lineWidth = Math.max(0.6, 3.5 * amp);
+        ctx.strokeStyle = `rgba(212, 162, 78, ${alpha * 0.9})`;
+        ctx.stroke();
+
+        // Bright leading dot
+        if (drawProgress < 1 || echoElapsed < 0.8) {
+          const dotProgress = drawProgress < 1 ? drawProgress : Math.max(0, 1 - (echoElapsed - 0.5) / 0.3);
+          const dotAngle = drawProgress < 1 ? currentEnd : endAngle;
+          const dotX = acx + Math.cos(dotAngle) * fibRadius;
+          const dotY = acy + Math.sin(dotAngle) * fibRadius;
+          const dotSize = 10 * amp * dotProgress;
+          if (dotSize > 0.5) {
+            const dotGrad = ctx.createRadialGradient(dotX, dotY, 0, dotX, dotY, dotSize);
+            dotGrad.addColorStop(0, `rgba(255, 240, 210, ${alpha * dotProgress})`);
+            dotGrad.addColorStop(0.5, `rgba(232, 192, 112, ${alpha * dotProgress * 0.5})`);
+            dotGrad.addColorStop(1, `rgba(212, 162, 78, 0)`);
+            ctx.beginPath();
+            ctx.arc(dotX, dotY, dotSize, 0, Math.PI * 2);
+            ctx.fillStyle = dotGrad;
+            ctx.fill();
+          }
+        }
+
+        // Ripple ring expanding from this echo's impact point (arc start)
+        if (echoElapsed > 0 && echoElapsed < 3) {
+          const impactX = acx + sx * fibRadius;
+          const impactY = acy + sy * fibRadius;
+          const ringRadius = echoElapsed * 50;
+          const ringAlpha = alpha * Math.max(0, 1 - echoElapsed / 3) * 0.3;
           ctx.beginPath();
-          ctx.arc(dotX, dotY, dotSize, 0, Math.PI * 2);
-          ctx.fillStyle = dotGrad;
-          ctx.fill();
+          ctx.arc(impactX, impactY, ringRadius, 0, Math.PI * 2);
+          ctx.strokeStyle = `rgba(212, 162, 78, ${ringAlpha})`;
+          ctx.lineWidth = 1.5 * amp;
+          ctx.stroke();
         }
       }
 
-      // Ripple ring expanding from this echo's impact point
-      if (echoElapsed > 0 && echoElapsed < 3) {
-        const impactAngle = startAngle; // where the echo "lands"
-        const impactX = acx + Math.cos(impactAngle) * fibRadius;
-        const impactY = acy + Math.sin(impactAngle) * fibRadius;
-        const ringRadius = echoElapsed * 50;
-        const ringAlpha = alpha * Math.max(0, 1 - echoElapsed / 3) * 0.3;
-        ctx.beginPath();
-        ctx.arc(impactX, impactY, ringRadius, 0, Math.PI * 2);
-        ctx.strokeStyle = `rgba(212, 162, 78, ${ringAlpha})`;
-        ctx.lineWidth = 1.5 * amp;
-        ctx.stroke();
-      }
-
-      // Shift center for next arc (fibonacci rectangle corner progression)
+      // Chain to the next arc's center — ALWAYS advance (even for faded arcs)
+      // so later arcs sit in the right place
       if (i < echoes) {
         const nextFib = FIB[Math.min(i + 1, FIB.length - 1)];
-        const dir = dirs[i % 4];
-        acx += dir[0] * nextFib * baseScale;
-        acy += dir[1] * nextFib * baseScale;
+        acx += ex * (fibVal - nextFib) * baseScale;
+        acy += ey * (fibVal - nextFib) * baseScale;
       }
     }
 
     ctx.restore();
-
-    // ——— Timeline at bottom ———
-    let totalDur = 0;
-    for (let i = 0; i < gaps.length; i++) totalDur += gaps[i];
-    const timelineY = h - 20;
-    const timelineScale = w / (totalDur + 1);
-
-    for (let i = 0; i <= echoes; i++) {
-      const tx = echoTimes[i] * timelineScale + 10;
-      const tAlpha = (elapsed > echoTimes[i] ? 0.8 : 0.2);
-      const amp = Math.pow(decay, i);
-
-      ctx.beginPath();
-      ctx.arc(tx, timelineY, 3 * amp + 1, 0, Math.PI * 2);
-      ctx.fillStyle = `rgba(212, 162, 78, ${tAlpha * amp})`;
-      ctx.fill();
-
-      if (i < gaps.length) {
-        const nextTx = echoTimes[i + 1] * timelineScale + 10;
-        ctx.font = '8px Courier New';
-        ctx.fillStyle = `rgba(100, 80, 40, ${tAlpha * 0.5})`;
-        const label = ripple.params.seq === 'fibonacci' ? `F${FIB[i]}` : ripple.params.seq === 'golden' ? `φ${i+1}` : `${i+1}`;
-        ctx.fillText(label, (tx + nextTx) / 2 - 6, timelineY - 6);
-      }
-    }
-
-    // Playhead
-    const playheadX = elapsed * timelineScale + 10;
-    if (playheadX < w && elapsed < totalDur + 1) {
-      ctx.beginPath();
-      ctx.moveTo(playheadX, timelineY - 8);
-      ctx.lineTo(playheadX, timelineY + 8);
-      ctx.strokeStyle = 'rgba(232, 192, 112, 0.7)';
-      ctx.lineWidth = 1;
-      ctx.stroke();
-    }
   }
 
-  // ——— Idle: subtle breathing golden spiral ———
-  if (activeRipples.length === 0) {
+  // ——— LINEAR ECHO GRAPH (bottom strip): the newest ripple's echo train ———
+  // Restored: draws in BOTH player and gen mode (gen ripples used to skip it).
+  // This graph, the audible echo taps and the MIDI-out echo notes all read the
+  // SAME ripple.gaps sequence — what you see == what you hear == what Ableton gets.
+  if (activeRipples.length) {
+    _drawEchoTimeline(activeRipples[activeRipples.length - 1], w, h, now);
+  }
+
+  // ——— Idle: subtle breathing golden spiral (player mode only — gen has the living spiral) ———
+  if (activeRipples.length === 0 && !_genTabActive && !genActive) {
     ctx.save();
     ctx.translate(cx, cy);
     ctx.beginPath();
@@ -2516,11 +3482,12 @@ function buildPiano() {
 const heldNotes = {}; // midi -> { interval, count, keyEl, name }
 const PULSE_RAMP_MS = 80; // initial pulse speed (ms), slows with depth
 
-function noteOn(midi, name, keyEl, velocity) {
+function noteOn(midi, name, keyEl, velocity, voiceTag) {
   initAudio();
   if (keyEl) keyEl.classList.add('pressed');
   const freq = midiToFreq(midi);
   velocity = velocity || 127;
+  window._noteVoiceTag = voiceTag || 'A'; // MIDI-out channel routing (gen voice B can take its own channel)
   
   // Debug: show actual params being used
   const _p = getParams();
@@ -2586,6 +3553,91 @@ document.addEventListener('keyup', (e) => {
   }
 });
 
+// ========== MIDI OUT (family standard — this pattern ports to all physics engines) ==========
+// FUTURE (Marcus): multiple engine instances will need a SHARED CLOCK (MIDI clock or a
+// master transport) so several ripple/physics engines phase-lock. All sends already
+// route through _midiSend() with performance.now()-domain timestamps, so a clock layer
+// can be slotted in there later without touching any caller.
+var midiOut = { access: null, port: null, ch: 0, chB: -1, internalAudio: true, debug: false };
+var midiOutPorts = [];
+
+function midiOutInit() {
+  // channel selectors
+  const chSel = document.getElementById('midiout-ch');
+  if (chSel && !chSel.dataset.built) {
+    chSel.innerHTML = Array.from({length:16},(_,i)=>`<option value="${i+1}">${i+1}</option>`).join('');
+    chSel.dataset.built = '1';
+  }
+  const chBSel = document.getElementById('midiout-chb');
+  if (chBSel && !chBSel.dataset.built) {
+    chBSel.innerHTML = '<option value="">same</option>' + Array.from({length:16},(_,i)=>`<option value="${i+1}">${i+1}</option>`).join('');
+    chBSel.dataset.built = '1';
+  }
+  if (!navigator.requestMIDIAccess) { _midiOutStatus('no WebMIDI'); return; }
+  navigator.requestMIDIAccess({ sysex: false }).then(acc => {
+    midiOut.access = acc;
+    const rebuild = () => {
+      midiOutPorts = [...acc.outputs.values()];
+      const sel = document.getElementById('midiout-sel');
+      if (!sel) return;
+      const cur = midiOut.port ? midiOut.port.id : '';
+      sel.innerHTML = '<option value="">off — internal only</option>' +
+        midiOutPorts.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+      if (cur && midiOutPorts.some(p => p.id === cur)) sel.value = cur;
+      else if (cur) { midiOut.port = null; sel.value = ''; } // hot-unplug tolerance
+      _midiOutStatus();
+    };
+    rebuild();
+    acc.onstatechange = rebuild;
+  }).catch(() => _midiOutStatus('unavailable'));
+}
+function midiOutSelect(id) {
+  midiOut.port = midiOutPorts.find(p => p.id === id) || null;
+  _midiOutStatus();
+}
+function _midiOutStatus(msg) {
+  const el = document.getElementById('midiout-status');
+  if (!el) return;
+  if (msg) { el.textContent = msg; el.style.color = '#555'; return; }
+  if (midiOut.port) { el.textContent = '● ' + midiOut.port.name; el.style.color = '#4a4'; }
+  else { el.textContent = '○ off'; el.style.color = '#555'; }
+}
+function _midiSend(bytes, atMs) {
+  // <- future clock-sync hook: quantize atMs to the shared transport here
+  if (!midiOut.port) return;
+  try { midiOut.port.send(bytes, atMs); } catch (e) {}
+}
+function _midiEnvMs(params) {
+  // gate tied to the note's envelope so external instruments breathe with the internal voice
+  return Math.max(120, Math.min(12000, (params.attack + params.adsrDecay + 0.1 + params.release) * 1000));
+}
+// One scheduled MIDI note: noteOn at +delayMs, matching noteOff after durMs
+function midiOutNote(midi, velocity, delayMs, durMs, voiceTag) {
+  if (midi == null) return;
+  if (midiOut.debug) console.log(`[midi-out] note=${midi} vel=${Math.round(velocity)} +${Math.round(delayMs)}ms dur=${Math.round(durMs)}ms voice=${voiceTag||'A'} port=${midiOut.port?midiOut.port.name:'(none)'}`);
+  if (!midiOut.port) return;
+  const ch = (voiceTag === 'B' && midiOut.chB >= 0) ? midiOut.chB : midiOut.ch;
+  const n = Math.max(0, Math.min(127, Math.round(midi)));
+  const v = Math.max(1, Math.min(127, Math.round(velocity)));
+  const t0 = performance.now() + Math.max(0, delayMs || 0);
+  _midiSend([0x90 | ch, n, v], t0);
+  _midiSend([0x80 | ch, n, 0], t0 + Math.max(60, durMs || 500));
+}
+function midiOutAllOff() {
+  if (!midiOut.port) return;
+  for (let ch = 0; ch < 16; ch++) _midiSend([0xB0 | ch, 123, 0]); // CC123 all notes off
+}
+function toggleInternalAudio() {
+  midiOut.internalAudio = !midiOut.internalAudio;
+  const b = document.getElementById('midiout-audio-btn');
+  if (b) {
+    b.textContent = midiOut.internalAudio ? '🔊 synth' : '🔇 synth';
+    b.style.background = midiOut.internalAudio ? '#3a2f18' : '#12121e';
+    b.style.color = midiOut.internalAudio ? '#e0b45e' : '#666';
+    b.style.borderColor = midiOut.internalAudio ? '#c8a44e' : '#2a2a3a';
+  }
+}
+
 // ========== MIDI INPUT ==========
 if (navigator.requestMIDIAccess) {
   navigator.requestMIDIAccess().then(midi => {
@@ -2600,6 +3652,9 @@ if (navigator.requestMIDIAccess) {
         const isPort2 = input.name.toLowerCase().includes('port 2');
         input.onmidimessage = (msg) => {
           if (isPort2) return; // ignore all Port 2 data
+          // FEEDBACK GUARD: never listen to the port we are SENDING on (e.g. IAC loopback
+          // would re-trigger our own echo trains as new notes — runaway cascade)
+          if (typeof midiOut !== 'undefined' && midiOut && midiOut.port && input.name === midiOut.port.name) return;
           const [cmd, data1, data2] = msg.data;
           const msgType = cmd & 0xF0;
           const ch = cmd & 0x0F;
@@ -3166,6 +4221,16 @@ document.querySelectorAll('.param input[type="range"]').forEach(input => {
     const val = input.value;
     const display = document.getElementById('val-' + id);
     if (display) display.textContent = parseFloat(val).toFixed(id === 'echoes' || id === 'depth' || id === 'gap' || id === 'qwindow' ? 0 : 3);
+    // BINDING FIX: the engine reads the STRIP copy first (getVal), so a deep-dive
+    // slider move must land in the strip too — otherwise the knob changes nothing.
+    const sid = (window._ORIG_TO_STRIP || {})[id];
+    if (sid) {
+      const sEl = document.getElementById(sid);
+      if (sEl && sEl.value !== val) {
+        sEl.value = val;
+        if (typeof updateStripVal === 'function') updateStripVal(sid);
+      }
+    }
   });
 });
 
@@ -3713,6 +4778,8 @@ function stopCapture() {
 
 // ========== PANIC STOP — kill all sound ==========
 function panicStop() {
+  midiOutAllOff();                       // hush external instruments too
+  if (typeof genCascadeClear === 'function') genCascadeClear(); // cancel pending cascade strikes
   if (!audioCtx) return;
   // Suspend and resume to kill all scheduled oscillators
   audioCtx.close();
@@ -3737,6 +4804,9 @@ const STRIP_MAP = {
   's-reverb': 'reverb', 's-width': 'width', 's-warmth': 'warmth',
   's-loopspeed': 'loopspeed',
 };
+// reverse map: original slider id → strip id (for the sidebar→strip binding fix)
+window._ORIG_TO_STRIP = {};
+Object.entries(STRIP_MAP).forEach(([s, o]) => { window._ORIG_TO_STRIP[o] = s; });
 
 // Store default values for double-click reset
 const STRIP_DEFAULTS = {};
@@ -3911,6 +4981,7 @@ function saveUserPreset() {
   // Also save generative state
   params._genRoot = document.getElementById('gen-root')?.value || '60';
   params._genDensity = document.getElementById('gen-density')?.value || '0.3';
+  params._genRange = genVoices.A.range;
   params._genTiming = genTiming;
   params._noteMode = currentNoteMode;
   params._tuning = tuningMode;
@@ -3937,9 +5008,10 @@ function loadUserPreset(name) {
       if (input) { input.value = p[key]; input.dispatchEvent(new Event('input')); }
     }
   });
-  // Restore generative settings
-  if (p._genRoot) { const r = document.getElementById('gen-root'); if (r) r.value = p._genRoot; const sr = document.getElementById('s-gen-root'); if (sr) sr.value = p._genRoot; }
-  if (p._genDensity) { const d = document.getElementById('gen-density'); if (d) d.value = p._genDensity; const sd = document.getElementById('s-gen-density'); if (sd) sd.value = p._genDensity; }
+  // Restore generative settings (through the single-source setters so every mirror updates)
+  if (p._genRoot) setGenRootFor('A', p._genRoot);
+  if (p._genDensity) setGenDensityFor('A', p._genDensity);
+  if (p._genRange) { genVoices.A.range = parseInt(p._genRange) || 2; if (typeof renderGenVoicePanel === 'function') renderGenVoicePanel(); }
   if (p._genTiming) genTiming = p._genTiming;
   if (p._harmonicsOn !== undefined && p._harmonicsOn !== harmonicsActive) toggleHarmonics();
   if (p._velocityOn !== undefined && p._velocityOn !== velocityEnabled) toggleVelocity();
@@ -3983,9 +5055,11 @@ function applySpaciousness(val) {
   }
   
   // Release: more space = longer tails
+  // BINDING FIX: this slider is in MILLISECONDS (50–5000) — the old 0.3–2.0 write
+  // was clamped to the 50ms minimum, so more Space actually CUT the tails short.
   const releaseSlider = document.getElementById('release');
   if (releaseSlider) {
-    releaseSlider.value = 0.3 + val * 1.7; // 0.3s → 2.0s
+    releaseSlider.value = 800 + val * 3200; // 0.8s → 4.0s
     releaseSlider.dispatchEvent(new Event('input'));
   }
   
@@ -4013,6 +5087,7 @@ function toggleGenerative() {
     if (polyTimerB) clearTimeout(polyTimerB);
     genTimer = null;
     polyTimerB = null;
+    ['A','B'].forEach(k => { const v = genVoices[k]; if (v.timer) { clearTimeout(v.timer); v.timer = null; } });
     if (btn) { btn.textContent = '▶ Start'; btn.classList.remove('recording'); }
     if (sBtn) { sBtn.textContent = '▶'; sBtn.classList.remove('active'); }
     document.getElementById('gen-info').textContent = 'Stopped.';
@@ -4022,14 +5097,17 @@ function toggleGenerative() {
     genStep = 0;
     polyStepA = 0;
     polyStepB = 0;
+    genVoices.A.step = 0; genVoices.B.step = 0;
+    genVoices.A.chordIdx = 0; genVoices.B.chordIdx = 0;
     if (btn) { btn.textContent = '⏹ Stop'; btn.classList.add('recording'); }
     if (sBtn) { sBtn.textContent = '⏹'; sBtn.classList.add('active'); }
     document.getElementById('gen-info').textContent = 'Generating...';
-    
+
     if (genTiming.startsWith('poly-')) {
       schedulePolyNote();
     } else {
-      scheduleGenNote();
+      scheduleGenVoice(genVoices.A);
+      if (genVoiceCount > 1) scheduleGenVoice(genVoices.B);
     }
   }
 }
@@ -4043,117 +5121,171 @@ function getPolyRatio() {
 
 function schedulePolyNote() {
   if (!genActive || !genTiming.startsWith('poly-')) return;
-  
-  const density = parseFloat(document.getElementById('gen-density').value);
-  const rootMidi = parseInt(document.getElementById('gen-root').value);
+
+  const density = genVoiceDensity(genVoices.A);
+  const rootMidi = genVoiceRoot(genVoices.A);
   const [ratioA, ratioB] = getPolyRatio();
-  
+  // FIXED: poly voices used hardcoded semitone offsets that ignored the selected
+  // scale — every interval now snaps to the ACTIVE note pool (scale + range).
+  const pool = genNotePool(genVoices.A);
+
   // Cycle length in ms — one full polyrhythm cycle
   const cycleMs = 3000 / density;
-  
+
   // Voice A: ratioA evenly spaced hits per cycle (lower register, root-based)
   const intervalA = cycleMs / ratioA;
   // Voice B: ratioB evenly spaced hits per cycle (upper register, fifths/octaves)
   const intervalB = cycleMs / ratioB;
-  
+
   // Voice A intervals — stay close to root (unison, octave, fifth)
   const voiceAIntervals = [0, 0, 7, 12, -12];
-  // Voice B intervals — upper harmonics (fifth, octave, tenth, twelfth)  
+  // Voice B intervals — upper harmonics (fifth, octave, tenth, twelfth)
   const voiceBIntervals = [7, 12, 16, 19, 24];
-  
+
   // Schedule voice A
   function scheduleA() {
     if (!genActive || !genTiming.startsWith('poly-')) return;
-    
+
     const interval = voiceAIntervals[polyStepA % voiceAIntervals.length];
-    const midi = Math.max(36, Math.min(84, rootMidi + interval));
-    const name = NOTE_NAMES[midi % 12] + Math.floor(midi / 12 - 1);
-    noteOn(midi, name, null);
-    
+    const midi = _nearestInPool(pool, rootMidi + interval);
+    const name = genNoteName(midi);
+    noteOn(midi, name, null, null, 'A');
+    if (activeRipples.length) activeRipples[activeRipples.length - 1]._genNote = true;
+    genSpiralNoteLanded(midi, 'A');
+    genRegisterSounding(midi);
+    genUpdateHud(genVoices.A, name);
+    flashGenKey(midi);
+
     const info = document.getElementById('gen-info');
     info.textContent = `♪ A:${name} | ${ratioA}:${ratioB} | step ${polyStepA+1}:${polyStepB} | cycle ${(cycleMs/1000).toFixed(1)}s`;
-    
+
     polyStepA++;
     const jitter = intervalA * (0.95 + Math.random() * 0.1); // slight humanize
     genTimer = setTimeout(scheduleA, jitter);
   }
-  
+
   // Schedule voice B
   function scheduleB() {
     if (!genActive || !genTiming.startsWith('poly-')) return;
-    
+
     const interval = voiceBIntervals[polyStepB % voiceBIntervals.length];
-    const midi = Math.max(36, Math.min(84, rootMidi + interval));
-    const name = NOTE_NAMES[midi % 12] + Math.floor(midi / 12 - 1);
-    noteOn(midi, name, null);
-    
+    const midi = _nearestInPool(pool, rootMidi + interval);
+    const name = genNoteName(midi);
+    noteOn(midi, name, null, null, 'B');
+    if (activeRipples.length) activeRipples[activeRipples.length - 1]._genNote = true;
+    genSpiralNoteLanded(midi, 'B');
+    genRegisterSounding(midi);
+    genUpdateHud(genVoices.B, name);
+
     const info = document.getElementById('gen-info');
     info.textContent = `♪ B:${name} | ${ratioA}:${ratioB} | step ${polyStepA}:${polyStepB+1} | cycle ${(cycleMs/1000).toFixed(1)}s`;
-    
+
     polyStepB++;
     const jitter = intervalB * (0.95 + Math.random() * 0.1);
     polyTimerB = setTimeout(scheduleB, jitter);
   }
-  
+
   // Stagger start — voice B enters slightly after voice A
   scheduleA();
   setTimeout(scheduleB, intervalB * 0.5);
 }
 
-function scheduleGenNote() {
+// ===== PER-VOICE SCHEDULER — each voice is its own independent line =====
+function scheduleGenVoice(voice) {
   if (!genActive) return;
-  
-  // If switched to poly mode mid-gen, redirect
+
+  // If switched to poly mode mid-gen, redirect (poly runs its own two-line engine)
   if (genTiming.startsWith('poly-')) {
-    polyStepA = 0; polyStepB = 0;
-    schedulePolyNote();
+    if (voice.id === 'A') { polyStepA = 0; polyStepB = 0; schedulePolyNote(); }
     return;
   }
-  
-  const density = parseFloat(document.getElementById('gen-density').value);
-  const rootMidi = parseInt(document.getElementById('gen-root').value);
-  
+
+  const density = genVoiceDensity(voice);
+  const timing = genVoiceTiming(voice);
+
   // Calculate delay based on timing mode
   let delayMs;
-  const baseMs = 800 / density; // higher density = shorter gaps
-  
-  switch (genTiming) {
-    case 'fibonacci':
-      delayMs = baseMs * GEN_FIB[genStep % GEN_FIB.length] * 0.3;
-      break;
+  const baseMs = 800 / Math.max(0.05, density); // higher density = shorter gaps
+
+  switch (timing) {
     case 'golden':
-      delayMs = baseMs * Math.pow(GEN_PHI, (genStep % 7) - 2) * 0.5;
+      delayMs = baseMs * Math.pow(GEN_PHI, (voice.step % 7) - 2) * 0.5;
       break;
     case 'linear':
       delayMs = baseMs * (0.5 + Math.random() * 0.5);
       break;
+    default: // fibonacci
+      delayMs = baseMs * GEN_FIB[voice.step % GEN_FIB.length] * 0.3;
   }
-  
+
   // Add slight randomness for organic feel
   delayMs *= (0.85 + Math.random() * 0.3);
   delayMs = Math.max(300, Math.min(delayMs, 8000));
-  
-  genTimer = setTimeout(() => {
+
+  // Spiral comet rides on voice A's countdown
+  if (voice.id === 'A') {
+    _genSpiralNextSet = performance.now();
+    _genSpiralNextAt = _genSpiralNextSet + delayMs;
+  }
+
+  voice.timer = setTimeout(() => {
+    voice.timer = null;
     if (!genActive) return;
-    
-    // Pick a consonant interval
-    const interval = GEN_INTERVALS[Math.floor(Math.random() * GEN_INTERVALS.length)];
-    const midi = rootMidi + interval;
-    
-    // Clamp to playable range
-    const clampedMidi = Math.max(36, Math.min(84, midi));
-    const name = NOTE_NAMES[clampedMidi % 12] + Math.floor(clampedMidi / 12 - 1);
-    
-    // Play through the existing ripple system
-    noteOn(clampedMidi, name, null);
-    
-    // Update info
-    document.getElementById('gen-info').textContent = 
-      `♪ ${name} | step ${genStep + 1} | next: ${(delayMs/1000).toFixed(1)}s | ${genTiming}`;
-    
-    genStep++;
-    scheduleGenNote();
+    if (voice.id === 'B' && genVoiceCount < 2) return;
+
+    if (voice.chordOn) genPlayChordTick(voice, delayMs);
+    else genPlayNoteTick(voice, delayMs);
+
+    voice.step++;
+    genStep = genVoices.A.step; // legacy mirror
+    scheduleGenVoice(voice);
   }, delayMs);
+}
+
+function genPlayNoteTick(voice, delayMs) {
+  // Pick the next note via the voice's motion model over ITS scale + range
+  const midi = genNextMidi(voice);
+  const name = genNoteName(midi);
+
+  // Play through the existing ripple system
+  noteOn(midi, name, null, null, voice.id);
+
+  // Gen notes live on the ONE spiral: tag the ripple + feed the spiral
+  if (activeRipples.length) activeRipples[activeRipples.length - 1]._genNote = true;
+  genSpiralNoteLanded(midi, voice.id);
+  genRegisterSounding(midi);
+
+  // Live GUI feedback (only the voice being edited drives the shared widgets)
+  if (voice.id === genEditVoice) {
+    flashGenKey(midi);
+    if (voice.pattern === 'organic' && !voice.recipe.length)
+      renderGenPhraseShape((voice.burstCount === 0 ? voice.burstSize : voice.burstCount) - 1);
+  }
+  genUpdateHud(voice, name);
+
+  const info = document.getElementById('gen-info');
+  if (info) info.textContent = genVoiceCount > 1
+    ? `♪ A:${genVoices.A.lastNote} · B:${genVoices.B.lastNote}`
+    : `♪ ${name} | step ${voice.step + 1} | next: ${(delayMs/1000).toFixed(1)}s | ${genVoiceTiming(voice)}`;
+}
+
+function genPlayChordTick(voice, delayMs) {
+  const chord = genChordMidis(voice);
+  chord.midis.forEach((m, i) => {
+    setTimeout(() => {
+      if (!genActive) return;
+      noteOn(m, genNoteName(m), null, null, voice.id);
+      if (activeRipples.length) activeRipples[activeRipples.length - 1]._genNote = true;
+      genSpiralNoteLanded(m, voice.id);
+      genRegisterSounding(m);
+      if (voice.id === genEditVoice) flashGenKey(m);
+    }, i * (130 + Math.random() * 70)); // gentle arpeggio — ambient, not blocky
+  });
+  genUpdateHud(voice, `${chord.token}·${genNoteName(chord.midis[0])}`);
+  const info = document.getElementById('gen-info');
+  if (info) info.textContent = genVoiceCount > 1
+    ? `♪ A:${genVoices.A.lastNote} · B:${genVoices.B.lastNote}`
+    : `♪ ${chord.token} [${chord.midis.map(genNoteName).join(' ')}] | ${voice.chordProg}`;
 }
 
 // ========== MODE PRESETS ==========
@@ -4345,14 +5477,15 @@ triggerRipple = function(freq, noteName, midi, velocity) {
     // Use the selected gap pattern (FIB/GOLD/LOG/LIN) — gap pattern is independent of quantize mode
     const gapSequence = getGapSequence(baseGap, params.echoes, currentSeqMode);
     
-    // Schedule echoes using the gap pattern
+    // Schedule echoes using the gap pattern (audio + MIDI + echo graph share this sequence)
     let time = now;
     for (let i = 0; i <= params.echoes; i++) {
       const amp = 0.3 * velGainQ * Math.pow(params.decay, i);
       playTone(freq, time, amp, i, params);
+      if (midi != null) midiOutNote(midi, velocity * Math.pow(params.decay, i), (time - audioCtx.currentTime) * 1000, _midiEnvMs(params), window._noteVoiceTag);
       if (i < gapSequence.length) time += gapSequence[i];
     }
-    
+
     // Visual ripple with gap pattern
     const _pos = _vizNotePosition(freq, midi);
     activeRipples.push({
@@ -4381,13 +5514,15 @@ triggerRipple = function(freq, noteName, midi, velocity) {
     const gapSequence = getGapSequence(baseGap, params.echoes, currentSeqMode);
     
     // Schedule echoes — each note press is fully independent
+    // (audio + MIDI-out + the echo graph all read this one gapSequence)
     let time = now;
     for (let i = 0; i <= params.echoes; i++) {
       const amp = 0.3 * velGainQ * Math.pow(params.decay, i);
       playTone(freq, time, amp, i, params);
+      if (midi != null) midiOutNote(midi, velocity * Math.pow(params.decay, i), (time - audioCtx.currentTime) * 1000, _midiEnvMs(params), window._noteVoiceTag);
       if (i < gapSequence.length) time += gapSequence[i];
     }
-    
+
     // Visual ripple (independent, no shared grid rebuild)
     const _pos = _vizNotePosition(freq, midi);
     activeRipples.push({
@@ -4501,6 +5636,7 @@ function switchTab(tab) {
   const genBtn = document.getElementById('tab-gen');
   const genControls = document.getElementById('gen-tab-controls');
   
+  _genTabActive = (tab === 'gen'); // the living spiral draws only in gen mode
   if (tab === 'player') {
     playerBtn.style.borderBottomColor = '#c8a44e';
     playerBtn.style.color = '#c8a44e';
@@ -4515,6 +5651,8 @@ function switchTab(tab) {
     playerBtn.style.borderBottomColor = 'transparent';
     playerBtn.style.color = '#555';
     genControls.style.display = 'flex';
+    // (re)build the gen instrument surface every time the tab opens
+    renderGenVoicePanel();
   }
 }
 
@@ -4564,6 +5702,404 @@ syncStripFromOriginal = function() {
 
 // Auto-load Pure Sine on startup
 loadModePreset('pure-sine');
+
+// ========== CASCADE (family standard — sweep the active scale through the ripple voice) ==========
+var genCascDir = 'up', genCascSpread = 130, genCascAutoMin = 0;
+var _genCascTimers = [], _genCascBusyUntil = 0;
+function genCascade() {
+  initAudio();
+  const now = performance.now();
+  if (now < _genCascBusyUntil) return;              // one sweep at a time
+  const voice = GV();                               // sweeps the EDITED voice's scale + range
+  const pool = genNotePool(voice);
+  let seq = [...pool];
+  if (genCascDir === 'down') seq.reverse();
+  else if (genCascDir === 'updown') seq = seq.concat(seq.slice(0, -1).reverse());
+  let t = 40;
+  seq.forEach(m => {
+    _genCascTimers.push(setTimeout(() => {
+      noteOn(m, genNoteName(m), null, null, voice.id);
+      if (activeRipples.length) activeRipples[activeRipples.length - 1]._genNote = true;
+      genSpiralNoteLanded(m, voice.id);
+      genRegisterSounding(m);
+      flashGenKey(m);
+      genUpdateHud(voice, genNoteName(m));
+    }, t));
+    t += genCascSpread * (0.92 + Math.random() * 0.16); // slight humanize
+  });
+  _genCascBusyUntil = now + t + 300;
+  const btn = document.getElementById('gen-casc-btn');
+  if (btn) {
+    btn.style.background = '#c8a44e'; btn.style.color = '#0a0a0f';
+    setTimeout(() => { btn.style.background = '#12121e'; btn.style.color = '#c8a44e'; }, Math.min(t, 4000));
+  }
+}
+function genCascadeClear() { _genCascTimers.forEach(clearTimeout); _genCascTimers = []; _genCascBusyUntil = 0; }
+function setGenCascDir(d) {
+  genCascDir = d;
+  document.querySelectorAll('[data-cascdir]').forEach(b => {
+    const on = b.dataset.cascdir === d;
+    b.style.background = on ? '#3a2f18' : '#12121e';
+    b.style.color = on ? '#e0b45e' : '#888';
+    b.style.borderColor = on ? '#c8a44e' : '#2a2a3a';
+  });
+}
+function setGenCascAuto(min) {
+  genCascAutoMin = min;
+  document.querySelectorAll('[data-cascauto]').forEach(b => {
+    const on = parseInt(b.dataset.cascauto) === min;
+    b.style.background = on ? '#3a2f18' : '#12121e';
+    b.style.color = on ? '#e0b45e' : '#888';
+    b.style.borderColor = on ? '#c8a44e' : '#2a2a3a';
+  });
+}
+// auto-trigger: a sweep arrives BY CHANCE roughly every N minutes while gen runs
+setInterval(() => {
+  if (genActive && genCascAutoMin > 0 && Math.random() < 1 / (genCascAutoMin * 60)) genCascade();
+}, 1000);
+
+// ========== NATURE BED — an ambient floor under the generative music ==========
+// Audio files are SHARED with the sibling dashboard engines (echogarden & co.).
+// NEVER auto-starts: sound only on the explicit ▶ (or swapping beds while playing).
+const NAT_PATH = '../generative-instrument/dashboard/nature/';
+const NAT_FILES = [
+  'pixabay-calming-rain.mp3','pixabay-gentle-rain.mp3','pixabay-real-rain.mp3',
+  'pixabay-gentle-ocean-shore.mp3','pixabay-ocean-beach-waves.mp3','pixabay-soothing-ocean-waves.mp3',
+  'pixabay-ocean-waves-birdsong-gull.mp3','pixabay-wind-and-waves.mp3',
+  'pixabay-running-stream.mp3','pixabay-stream-nature.mp3','pixabay-water-stream-river.mp3',
+  'pixabay-forest-birds.mp3','pixabay-birds-forest-nature.mp3','pixabay-beautiful-birdsong.mp3',
+  'pixabay-morning-birdsong.mp3','pixabay-birds-classic.mp3'
+];
+var natBuf = null, natBufName = '', natGainNode = null, natTimer = null, natActive = [], natPlaying = false;
+function natInit() {
+  const sel = document.getElementById('nat-sel');
+  if (!sel || sel.dataset.built) return;
+  sel.innerHTML = NAT_FILES.map(f =>
+    `<option value="${f}">${f.replace('pixabay-','').replace('.mp3','').replace(/-/g,' ')}</option>`).join('');
+  sel.dataset.built = '1';
+}
+function natSetGain(v) {
+  v = parseFloat(v);
+  const lbl = document.getElementById('nat-gain-val');
+  if (lbl) lbl.textContent = v.toFixed(2).replace(/^0/, '');
+  if (natGainNode) natGainNode.gain.value = v;
+}
+async function _natLoad(name) {
+  const r = await fetch(NAT_PATH + name);
+  if (!r.ok) throw new Error('bed fetch ' + r.status);
+  natBuf = await audioCtx.decodeAudioData(await r.arrayBuffer());
+  natBufName = name;
+}
+function _natSpawnLoop() {
+  if (!natBuf) return;
+  clearTimeout(natTimer);
+  const xf = Math.min(4, natBuf.duration / 3); // seamless: crossfaded self-overlap
+  const spawn = () => {
+    const src = audioCtx.createBufferSource(); src.buffer = natBuf;
+    const g = audioCtx.createGain();
+    src.connect(g); g.connect(natGainNode);
+    const t = audioCtx.currentTime, dur = natBuf.duration;
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.linearRampToValueAtTime(1, t + xf);
+    g.gain.setValueAtTime(1, t + dur - xf);
+    g.gain.linearRampToValueAtTime(0.0001, t + dur);
+    src.start(t); src.stop(t + dur + 0.05);
+    natActive.push({ src, g }); natActive = natActive.slice(-3);
+    natTimer = setTimeout(spawn, (dur - xf) * 1000);
+  };
+  spawn();
+}
+function natStop() {
+  clearTimeout(natTimer); natTimer = null;
+  const t = audioCtx ? audioCtx.currentTime : 0;
+  natActive.forEach(a => {
+    try {
+      a.g.gain.cancelScheduledValues(t);
+      a.g.gain.setValueAtTime(a.g.gain.value, t);
+      a.g.gain.linearRampToValueAtTime(0.0001, t + 1.5);
+      a.src.stop(t + 1.6);
+    } catch (e) {}
+  });
+  natActive = [];
+  natPlaying = false;
+  const btn = document.getElementById('nat-play'); if (btn) btn.textContent = '▶';
+}
+async function natToggle() {
+  if (natPlaying) { natStop(); return; }
+  const sel = document.getElementById('nat-sel');
+  const name = sel ? sel.value : '';
+  if (!name) return;
+  initAudio();
+  if (!natGainNode) {
+    natGainNode = audioCtx.createGain();
+    natGainNode.gain.value = parseFloat(document.getElementById('nat-gain')?.value || '0.35');
+    natGainNode.connect(audioCtx.destination); // independent of the synth's master gain
+  }
+  const btn = document.getElementById('nat-play');
+  try {
+    if (natBufName !== name) { if (btn) btn.textContent = '…'; await _natLoad(name); }
+    natPlaying = true;
+    _natSpawnLoop();
+    if (btn) btn.textContent = '⏹';
+  } catch (e) {
+    console.warn('nature bed failed to load:', e);
+    if (btn) { btn.textContent = '✕'; setTimeout(() => { if (btn && !natPlaying) btn.textContent = '▶'; }, 1400); }
+  }
+}
+async function natSelChange() {
+  // swapping beds while playing = explicit user action → switch live; otherwise just select
+  if (natPlaying) { natStop(); await natToggle(); }
+}
+
+// ========== SET SOUND PARAM — one write that lands EVERYWHERE ==========
+// (original slider + its val label + the strip copy the engine actually reads)
+function setSoundParam(id, val) {
+  const orig = document.getElementById(id);
+  if (orig) { orig.value = val; orig.dispatchEvent(new Event('input')); } // input handler mirrors to strip
+}
+
+// ========== GEN SCENES (family standard — save / recall the whole setup) ==========
+const GEN_SCENES_KEY = 'ripple-gen-scenes';
+var genScenes = {};
+try { genScenes = JSON.parse(localStorage.getItem(GEN_SCENES_KEY) || '{}'); } catch (e) { genScenes = {}; }
+function _voiceSnapshot(v) {
+  return {
+    degrees: [...v.degrees], root: genVoiceRoot(v), range: v.range, density: genVoiceDensity(v),
+    timing: genVoiceTiming(v), pattern: v.pattern, recipe: [...v.recipe],
+    burstSize: v.burstSize, burstDir: v.burstDir,
+    chordOn: v.chordOn, chordProg: v.chordProg, chord7: v.chord7
+  };
+}
+function genSceneCapture() {
+  return {
+    v: 1,
+    voices: { A: _voiceSnapshot(genVoices.A), B: _voiceSnapshot(genVoices.B) },
+    voiceCount: genVoiceCount,
+    consonance: genConsonanceOn,
+    adsr: {
+      attack: getVal('attack', 's-attack', true), decay: getVal('adsr-decay', 's-adsr-decay', true),
+      sustain: getVal('sustain', 's-sustain'), release: getVal('release', 's-release', true)
+    },
+    cascade: { dir: genCascDir, spread: genCascSpread, auto: genCascAutoMin },
+    midi: { portId: midiOut.port ? midiOut.port.id : '', ch: midiOut.ch, chB: midiOut.chB, internalAudio: midiOut.internalAudio },
+    nature: { file: document.getElementById('nat-sel')?.value || '', gain: parseFloat(document.getElementById('nat-gain')?.value || '0.35') }
+  };
+}
+function _voiceApply(v, s) {
+  v.degrees = new Set(s.degrees && s.degrees.length ? s.degrees : [0, 2, 4, 7, 9]);
+  v.range = s.range || 2;
+  v.pattern = s.pattern || 'organic'; v.lastPreset = v.pattern;
+  v.recipe = [...(s.recipe || [])]; v.recipeIdx = 0;
+  v.patIdx = 0; v.patDir = 1; v.patBase = 0; v.patSub = 0; v.burstCount = 0;
+  v.burstSize = s.burstSize || 4; v.burstDir = s.burstDir || 'alternate';
+  v.chordOn = !!s.chordOn; v.chordProg = s.chordProg || 'I–IV–V–I'; v.chordIdx = 0; v.chord7 = !!s.chord7;
+  if (v.id === 'A') {
+    setGenRootFor('A', s.root || 60);
+    setGenDensityFor('A', s.density || 0.3);
+    if (s.timing) { genTiming = s.timing; const lbl = document.getElementById('val-gentiming'); if (lbl) lbl.textContent = s.timing; }
+  } else {
+    v.root = s.root || 72; v.density = s.density || 0.22; v.timing = s.timing || 'fibonacci';
+  }
+}
+function genSceneApply(s) {
+  if (!s || !s.voices) return;
+  _voiceApply(genVoices.A, s.voices.A || {});
+  _voiceApply(genVoices.B, s.voices.B || {});
+  genVoiceCount = s.voiceCount === 2 ? 2 : 1;
+  if (genVoiceCount === 1) {
+    if (genVoices.B.timer) { clearTimeout(genVoices.B.timer); genVoices.B.timer = null; }
+    if (genEditVoice === 'B') genEditVoice = 'A';
+  } else if (genActive && !genTiming.startsWith('poly-') && !genVoices.B.timer) {
+    scheduleGenVoice(genVoices.B);
+  }
+  genConsonanceOn = s.consonance !== false;
+  if (s.adsr) {
+    setSoundParam('attack', s.adsr.attack);
+    setSoundParam('adsr-decay', s.adsr.decay);
+    setSoundParam('sustain', s.adsr.sustain);
+    setSoundParam('release', s.adsr.release);
+    if (typeof syncStripFromOriginal === 'function') syncStripFromOriginal();
+  }
+  if (s.cascade) {
+    genCascSpread = s.cascade.spread || 130;
+    const sp = document.getElementById('gen-casc-spread'); if (sp) sp.value = genCascSpread;
+    const spv = document.getElementById('gen-casc-spread-val'); if (spv) spv.textContent = genCascSpread + 'ms';
+    setGenCascDir(s.cascade.dir || 'up');
+    setGenCascAuto(s.cascade.auto || 0);
+  }
+  if (s.midi) {
+    if (s.midi.portId && midiOutPorts.some(p => p.id === s.midi.portId)) {
+      const sel = document.getElementById('midiout-sel'); if (sel) sel.value = s.midi.portId;
+      midiOutSelect(s.midi.portId);
+    }
+    midiOut.ch = s.midi.ch || 0;
+    midiOut.chB = (s.midi.chB === undefined) ? -1 : s.midi.chB;
+    const c = document.getElementById('midiout-ch'); if (c) c.value = String(midiOut.ch + 1);
+    const cb = document.getElementById('midiout-chb'); if (cb) cb.value = midiOut.chB >= 0 ? String(midiOut.chB + 1) : '';
+    if (!!s.midi.internalAudio !== midiOut.internalAudio) toggleInternalAudio();
+  }
+  if (s.nature) {
+    const sel = document.getElementById('nat-sel');
+    if (sel && s.nature.file) sel.value = s.nature.file;  // selection only — recall NEVER auto-plays audio
+    const ng = document.getElementById('nat-gain');
+    if (ng && s.nature.gain !== undefined) { ng.value = s.nature.gain; natSetGain(s.nature.gain); }
+  }
+  renderGenVoicePanel();
+  if (window._adsrDraw) window._adsrDraw();
+}
+function saveGenScene() {
+  const inp = document.getElementById('gen-scene-name');
+  let name = (inp && inp.value.trim()) || '';
+  if (!name) name = (prompt('Scene name:') || '').trim();
+  if (!name) return;
+  genScenes[name] = genSceneCapture();
+  try { localStorage.setItem(GEN_SCENES_KEY, JSON.stringify(genScenes)); } catch (e) {}
+  if (inp) inp.value = '';
+  renderGenScenes();
+}
+function loadGenSceneByName(name) { if (genScenes[name]) genSceneApply(genScenes[name]); }
+function deleteGenScene(name) {
+  delete genScenes[name];
+  try { localStorage.setItem(GEN_SCENES_KEY, JSON.stringify(genScenes)); } catch (e) {}
+  renderGenScenes();
+}
+function renderGenScenes() {
+  const el = document.getElementById('gen-scenes-list'); if (!el) return;
+  const names = Object.keys(genScenes);
+  el.innerHTML = names.length
+    ? names.map(n => {
+        const safe = n.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
+        return `<span style="display:inline-flex; align-items:center; border:1px solid #2a2a3a; border-radius:3px; overflow:hidden;">
+          <button data-n="${safe}" onclick="loadGenSceneByName(this.dataset.n)" title="recall scene" style="padding:3px 8px;font-size:9px;font-family:monospace;cursor:pointer;border:none;background:#12121e;color:#c8a44e;">${safe}</button>
+          <button data-n="${safe}" onclick="deleteGenScene(this.dataset.n)" title="delete" style="padding:3px 5px;font-size:9px;font-family:monospace;cursor:pointer;border:none;border-left:1px solid #2a2a3a;background:#12121e;color:#555;">✕</button>
+        </span>`;
+      }).join('')
+    : '<span style="font-size:9px;color:#444;font-style:italic;">no scenes yet — shape a sound, name it, save</span>';
+}
+
+// ========== GRAPHICAL ADSR — drag the envelope itself ==========
+(function () {
+  const cv = document.getElementById('adsr-canvas');
+  if (!cv) return;
+  const g2 = cv.getContext('2d');
+  const SHARE = { a: 0.22, d: 0.28, h: 0.12, r: 0.38 }; // max width share per segment
+  const PAD = 10;
+  let drag = null;
+  const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+  function readP() {
+    return {
+      a: getVal('attack', 's-attack', true),
+      d: getVal('adsr-decay', 's-adsr-decay', true),
+      s: getVal('sustain', 's-sustain'),
+      r: getVal('release', 's-release', true)
+    };
+  }
+  function geom() {
+    const W = cv.width - PAD * 2, H = cv.height - PAD * 2;
+    const p = readP();
+    const wa = Math.max(4, W * SHARE.a * (p.a / 500));
+    const wd = Math.max(6, W * SHARE.d * (p.d / 2000));
+    const wh = W * SHARE.h;
+    const wr = Math.max(8, W * SHARE.r * (p.r / 5000));
+    const x0 = PAD, xa = x0 + wa, xd = xa + wd, xs = xd + wh, xr = xs + wr;
+    const yT = PAD, yB = PAD + H, ys = yB - H * p.s;
+    return { p, W, H, x0, xa, xd, xs, xr, yT, yB, ys };
+  }
+  function handles() {
+    const G = geom();
+    return [
+      { id: 'a', x: G.xa, y: G.yT },              // attack peak — drag x
+      { id: 'ds', x: G.xd, y: G.ys },             // decay end — drag x=decay, y=sustain
+      { id: 'r', x: G.xr, y: G.yB }               // release end — drag x
+    ];
+  }
+  function draw() {
+    const G = geom();
+    g2.clearRect(0, 0, cv.width, cv.height);
+    // baseline
+    g2.strokeStyle = 'rgba(200,164,78,0.15)'; g2.lineWidth = 1;
+    g2.beginPath(); g2.moveTo(PAD, G.yB); g2.lineTo(cv.width - PAD, G.yB); g2.stroke();
+    // envelope
+    const path = new Path2D();
+    path.moveTo(G.x0, G.yB);
+    path.lineTo(G.xa, G.yT);
+    path.quadraticCurveTo(G.xa + (G.xd - G.xa) * 0.35, G.ys + (G.yT - G.ys) * 0.25, G.xd, G.ys);
+    path.lineTo(G.xs, G.ys);
+    path.quadraticCurveTo(G.xs + (G.xr - G.xs) * 0.3, G.yB - (G.yB - G.ys) * 0.3, G.xr, G.yB);
+    const fill = new Path2D(path); fill.lineTo(G.x0, G.yB); fill.closePath();
+    const grad = g2.createLinearGradient(0, G.yT, 0, G.yB);
+    grad.addColorStop(0, 'rgba(212,162,78,0.30)');
+    grad.addColorStop(1, 'rgba(212,162,78,0.03)');
+    g2.fillStyle = grad; g2.fill(fill);
+    g2.strokeStyle = 'rgba(224,180,94,0.9)'; g2.lineWidth = 1.5; g2.stroke(path);
+    // sustain plateau hint
+    g2.strokeStyle = 'rgba(139,164,212,0.25)';
+    g2.setLineDash([2, 3]);
+    g2.beginPath(); g2.moveTo(PAD, G.ys); g2.lineTo(cv.width - PAD, G.ys); g2.stroke();
+    g2.setLineDash([]);
+    // handles
+    handles().forEach(h => {
+      g2.beginPath(); g2.arc(h.x, h.y, 4, 0, Math.PI * 2);
+      g2.fillStyle = h.id === drag ? '#ffe9b0' : '#0c0c16';
+      g2.fill();
+      g2.strokeStyle = '#e0b45e'; g2.lineWidth = 1.5; g2.stroke();
+    });
+    // tiny labels
+    g2.font = '8px Courier New'; g2.fillStyle = 'rgba(150,120,60,0.8)';
+    g2.fillText('A', G.xa - 3, G.yT - 2 < 8 ? G.yT + 12 : G.yT - 2);
+    g2.fillText('D·S', G.xd + 4, G.ys - 4 < 10 ? G.ys + 12 : G.ys - 4);
+    g2.fillText('R', Math.min(G.xr, cv.width - PAD - 6) - 2, G.yB - 4);
+  }
+  function evPos(e) {
+    const rect = cv.getBoundingClientRect();
+    return { x: (e.clientX - rect.left) * cv.width / rect.width, y: (e.clientY - rect.top) * cv.height / rect.height };
+  }
+  function applyDrag(e) {
+    const G = geom(), p = evPos(e), W = cv.width - PAD * 2, H = cv.height - PAD * 2;
+    if (drag === 'a') {
+      setSoundParam('attack', Math.max(1, Math.round(clamp((p.x - G.x0) / (W * SHARE.a), 0, 1) * 500)));
+    } else if (drag === 'ds') {
+      setSoundParam('adsr-decay', Math.max(10, Math.round(clamp((p.x - G.xa) / (W * SHARE.d), 0, 1) * 200) * 10));
+      setSoundParam('sustain', +clamp((G.yB - p.y) / H, 0, 1).toFixed(2));
+    } else if (drag === 'r') {
+      setSoundParam('release', Math.max(50, Math.round(clamp((p.x - G.xs) / (W * SHARE.r), 0, 1) * 100) * 50));
+    }
+    draw();
+  }
+  cv.addEventListener('pointerdown', e => {
+    const p = evPos(e);
+    let best = null, bd = 15 * 15;
+    handles().forEach(h => { const d = (h.x - p.x) ** 2 + (h.y - p.y) ** 2; if (d < bd) { bd = d; best = h.id; } });
+    if (!best) {
+      // grabbing the plateau (between decay-end and release-start) adjusts sustain
+      const G = geom();
+      if (p.x > G.xd - 6 && p.x < G.xs + 6) best = 'ds';
+    }
+    if (best) { drag = best; cv.setPointerCapture(e.pointerId); applyDrag(e); }
+    e.preventDefault();
+  });
+  cv.addEventListener('pointermove', e => { if (drag) applyDrag(e); });
+  ['pointerup', 'pointercancel'].forEach(t => cv.addEventListener(t, () => {
+    if (drag) {
+      drag = null;
+      if (typeof syncStripFromOriginal === 'function') syncStripFromOriginal();
+      draw();
+    }
+  }));
+  // two-way sync: any slider move (panel, strip, preset, spaciousness) repaints the graph
+  ['attack', 'adsr-decay', 'sustain', 'release'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('input', draw);
+  });
+  window._adsrDraw = draw;
+  draw();
+})();
+
+// ===== GEN MODE UI INIT =====
+renderGenVoicePanel();   // keyboard, motion, recipe, burst, chords, HUD — all from the edited voice
+natInit();
+midiOutInit();
+renderGenScenes();
 
 // Initial sync
 syncEssentials();
