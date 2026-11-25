@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+<style>
+  * { margin: 0; padding: 0; }
+  body { background: #000; display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+  canvas { display: block; }
+</style>
+</head>
+<body>
+<canvas id="c" width="1600" height="1600"></canvas>
+<script>
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+const W = 1600, H = 1600;
+const cx = W/2, cy = H/2;
+
+// Background — deep blue gradient
+const bgGrad = ctx.createLinearGradient(0, 0, W, H);
+bgGrad.addColorStop(0, '#020818');
+bgGrad.addColorStop(0.5, '#040d24');
+bgGrad.addColorStop(1, '#010510');
+ctx.fillStyle = bgGrad;
+ctx.fillRect(0, 0, W, H);
+
+// Subtle radial glow in center
+const centerGlow = ctx.createRadialGradient(cx, cy, 0, cx, cy, 600);
+centerGlow.addColorStop(0, 'rgba(10, 40, 100, 0.4)');
+centerGlow.addColorStop(1, 'rgba(0, 0, 0, 0)');
+ctx.fillStyle = centerGlow;
+ctx.fillRect(0, 0, W, H);
+
+const phi = (1 + Math.sqrt(5)) / 2;
+
+// Fibonacci rectangle tiling — centered in the square
+// Each rectangle tiles in a spiral: right, up, left, down...
+const unit = 4.5;
+const fibs = [1, 1, 2, 3, 5, 8, 13, 21, 34, 55, 89, 144, 233];
+
+// Build the tiling from center outward
+// The Fibonacci rectangles spiral: starts at center
+let rects = [];
+let x = 0, y = 0;
+
+// Manual placement of the classic Fibonacci spiral rectangle pattern
+// Normalized, then scaled and centered
+const tiles = [
+  { f: 1,   x: 0,    y: 0,    w: 1,   h: 1,   dir: 0 },
+  { f: 1,   x: 1,    y: 0,    w: 1,   h: 1,   dir: 1 },
+  { f: 2,   x: -1,   y: 0,    w: 2,   h: 2,   dir: 2 },  // wait, wrong — let me use canonical
+
+  // Actually use the canonical tiling:
+  // Start at origin, go right
+];
+
+// Canonical Fibonacci rectangle spiral
+// I'll build it programmatically
+// Directions: 0=right, 1=up, 2=left, 3=down
+function buildFibTiling() {
+  const rects = [];
+  let ax = 0, ay = 0; // anchor (bottom-left of current rect)
+  let dir = 0; // start going right
+  let prev = { x: 0, y: 0, w: 1, h: 1 };
+  
+  // f(0)=1 at origin
+  rects.push({ f: 1, x: 0, y: 0, w: 1, h: 1 });
+  
+  // f(1)=1 goes up
+  rects.push({ f: 1, x: 0, y: 1, w: 1, h: 1 });
+  
+  // f(2)=2 goes left (width 2, height 2, placed to the left of previous two)
+  // The first two 1x1 squares sit at x:[0,1], y:[0,1]
+  // Next goes left: 2x2 at x:[-2, 0], y:[0, 2]
+  rects.push({ f: 2, x: -2, y: 0, w: 2, h: 2 });
+  
+  // f(3)=3 goes down: 3x3 below the 2x2 and the 1x1s
+  // Current bounding: x:[-2,1], y:[0,2]
+  // Goes below: x:[-2,1], y:[-3,0]
+  rects.push({ f: 3, x: -2, y: -3, w: 3, h: 3 });
+  
+  // f(4)=5 goes right: 5x5 to the right
+  // Current bounding: x:[-2,1], y:[-3,2]
+  // Goes right: x:[1,6], y:[-3,2]
+  rects.push({ f: 5, x: 1, y: -3, w: 5, h: 5 });
+  
+  // f(5)=8 goes up: 8x8 above
+  // Current bounding: x:[-2,6], y:[-3,2]
+  // Goes above: x:[-2,6], y:[2,10]
+  rects.push({ f: 8, x: -2, y: 2, w: 8, h: 8 });
+  
+  // f(6)=13 goes left: 13x13
+  // Current bounding: x:[-2,6], y:[-3,10]
+  // Goes left: x:[-15,−2], y:[-3,10]
+  rects.push({ f: 13, x: -15, y: -3, w: 13, h: 13 });
+  
+  // f(7)=21 goes down: 21x21
+  // Current bounding: x:[-15,6], y:[-3,10]
+  // Goes below: x:[-15,6], y:[-24,−3]
+  rects.push({ f: 21, x: -15, y: -24, w: 21, h: 21 });
+  
+  // f(8)=34 goes right: 34x34
+  // Current bounding: x:[-15,6], y:[-24,10]
+  // Goes right: x:[6,40], y:[-24,10]
+  rects.push({ f: 34, x: 6, y: -24, w: 34, h: 34 });
+  
+  // f(9)=55 goes up: 55x55
+  // Current bounding: x:[-15,40], y:[-24,10]
+  // Goes above: x:[-15,40], y:[10,65]
+  rects.push({ f: 55, x: -15, y: 10, w: 55, h: 55 });
+  
+  // f(10)=89 goes left: 89x89
+  // Current bounding: x:[-15,40], y:[-24,65]
+  // Goes left: x:[-104,−15], y:[-24,65]
+  rects.push({ f: 89, x: -104, y: -24, w: 89, h: 89 });
+  
+  return rects;
+}
+
+const fibRects = buildFibTiling();
+
+// Find bounding box
+let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+fibRects.forEach(r => {
+  minX = Math.min(minX, r.x);
+  minY = Math.min(minY, r.y);
+  maxX = Math.max(maxX, r.x + r.w);
+  maxY = Math.max(maxY, r.y + r.h);
+});
+
+const tileW = maxX - minX;
+const tileH = maxY - minY;
+
+// Scale to fit in 1200x1200 centered in 1600x1600
+const margin = 150;
+const availW = W - margin * 2;
+const availH = H - margin * 2;
+const scale = Math.min(availW / tileW, availH / tileH) * unit;
+const offX = cx - (minX + tileW / 2) * scale / unit;
+const offY = cy - (minY + tileH / 2) * scale / unit;
+
+function toScreen(rx, ry) {
+  return [
+    offX + rx * scale / unit,
+    offY + ry * scale / unit
+  ];
+}
+
+// Draw rectangles with blue-to-gold gradient per rect
+fibRects.forEach((r, i) => {
+  const [sx, sy] = toScreen(r.x, r.y);
+  const sw = r.w * scale / unit;
+  const sh = r.h * scale / unit;
+  
+  const t = i / fibRects.length;
+  
+  // Blue to gold gradient per rect
+  const rectGrad = ctx.createLinearGradient(sx, sy, sx + sw, sy + sh);
+  rectGrad.addColorStop(0, `rgba(20, 80, 180, ${0.08 + t * 0.12})`);
+  rectGrad.addColorStop(1, `rgba(200, 164, 78, ${0.04 + t * 0.08})`);
+  
+  ctx.fillStyle = rectGrad;
+  ctx.fillRect(sx, sy, sw, sh);
+  
+  // Border — blue for small, gold for large
+  const blueAlpha = Math.max(0.05, 0.4 - t * 0.35);
+  const goldAlpha = Math.min(0.6, t * 0.6);
+  ctx.strokeStyle = i < 5 
+    ? `rgba(60, 120, 255, ${blueAlpha})`
+    : `rgba(200, 164, 78, ${goldAlpha})`;
+  ctx.lineWidth = Math.max(0.5, t * 2.5);
+  ctx.strokeRect(sx, sy, sw, sh);
+});
+
+// Draw the golden spiral
+ctx.save();
+const spiralPoints = [];
+// The spiral starts at the center of the innermost square (0,0) to (1,1) → center at (0.5, 0.5)
+// and grows outward following the arc of each rectangle
+// Approximate with parametric golden spiral
+const spiralScale = scale / unit;
+for (let t = -Math.PI * 0.5; t < Math.PI * 9; t += 0.01) {
+  const r = 0.5 * Math.pow(phi, t / (Math.PI * 0.5));
+  const px = offX + (0 + r * Math.cos(t)) * spiralScale;
+  const py = offY + (0 + r * Math.sin(t)) * spiralScale;
+  spiralPoints.push([px, py]);
+}
+
+// Draw spiral — full gold with shimmer
+for (let i = 1; i < spiralPoints.length; i++) {
+  const t = i / spiralPoints.length;
+  ctx.beginPath();
+  ctx.moveTo(spiralPoints[i-1][0], spiralPoints[i-1][1]);
+  ctx.lineTo(spiralPoints[i][0], spiralPoints[i][1]);
+  
+  // Gold throughout, brighter in middle section for shimmer effect
+  const shimmer = Math.sin(t * Math.PI); // peaks in middle
+  const brightness = 150 + Math.round(shimmer * 80);
+  const alpha = Math.min(1, 0.2 + t * 0.5 + shimmer * 0.3);
+  ctx.strokeStyle = `rgba(${brightness + 50}, ${Math.round(brightness * 0.78)}, ${Math.round(brightness * 0.2)}, ${alpha})`;
+  ctx.lineWidth = 0.8 + t * 2.5 + shimmer * 0.8;
+  ctx.stroke();
+}
+
+// Shimmer glow pass — second layer, slightly offset for glow
+ctx.save();
+ctx.globalAlpha = 0.15;
+ctx.shadowColor = '#c8a44e';
+ctx.shadowBlur = 20;
+for (let i = 1; i < spiralPoints.length; i += 3) {
+  const t = i / spiralPoints.length;
+  ctx.beginPath();
+  ctx.moveTo(spiralPoints[i-1][0], spiralPoints[i-1][1]);
+  ctx.lineTo(spiralPoints[i][0], spiralPoints[i][1]);
+  ctx.strokeStyle = 'rgba(255, 200, 80, 0.8)';
+  ctx.lineWidth = 3 + t * 4;
+  ctx.stroke();
+}
+ctx.restore();
+ctx.restore();
+
+// No dots — clean spiral only
+
+// Shimmer particles scattered across image
+ctx.save();
+for (let i = 0; i < 200; i++) {
+  const px = Math.random() * W;
+  const py = Math.random() * H;
+  const size = Math.random() * 1.5;
+  const alpha = Math.random() * 0.3;
+  ctx.beginPath();
+  ctx.arc(px, py, size, 0, Math.PI * 2);
+  ctx.fillStyle = `rgba(200, 164, 78, ${alpha})`;
+  ctx.fill();
+}
+ctx.restore();
+
+// No text — IT requires clean images only
+</script>
+</body>
+</html>

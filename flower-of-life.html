@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Flower of Life</title>
+<style>
+  html,body{margin:0;height:100%;overflow:hidden;background:#0a0908;
+    font-family:-apple-system,system-ui,sans-serif;color:#c9a25a}
+  canvas{display:block;width:100vw;height:100vh}
+  #ui{position:fixed;left:16px;bottom:16px;background:rgba(18,14,8,.55);backdrop-filter:blur(8px);
+    padding:12px 15px;border-radius:13px;border:1px solid rgba(201,162,90,.2);font-size:13px;max-width:260px}
+  #ui h1{font-size:11px;margin:0 0 10px;letter-spacing:2px;color:#e7c987}
+  .row{display:flex;align-items:center;gap:10px;margin:8px 0}
+  .row label{flex:0 0 70px;opacity:.75}
+  input[type=range]{flex:1;accent-color:#c9a25a}
+  #ui small{opacity:.55;font-size:11px;display:block;margin-top:8px;line-height:1.4}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="ui">
+  <h1>✦ FLOWER OF LIFE</h1>
+  <div class="row"><label>Rings</label><input id="rings" type="range" min="1" max="4" value="2" step="1"></div>
+  <div class="row"><label>Glow</label><input id="glow" type="range" min="0" max="100" value="60"></div>
+  <div class="row"><label>Breath</label><input id="breath" type="range" min="0" max="100" value="45"></div>
+  <div class="row"><label>Spin</label><input id="spin" type="range" min="0" max="100" value="20"></div>
+  <small>19 circles on a triangular lattice — each passes through its neighbours' centres. The seed of sacred geometry.</small>
+  <div class="row" style="margin-top:8px"><button id="copy" style="flex:1;background:rgba(201,162,90,.16);border:1px solid rgba(201,162,90,.35);color:#e7c987;padding:8px;border-radius:9px;font-size:12px;cursor:pointer">⧉ Copy Code</button></div>
+</div>
+<script>
+const cv=document.getElementById('c'), ctx=cv.getContext('2d');
+const ringsEl=document.getElementById('rings'), glowEl=document.getElementById('glow'),
+      breathEl=document.getElementById('breath'), spinEl=document.getElementById('spin');
+let dpr=Math.min(devicePixelRatio||1,2);
+function resize(){ dpr=Math.min(devicePixelRatio||1,2); cv.width=innerWidth*dpr; cv.height=innerHeight*dpr; }
+addEventListener('resize',resize); resize();
+document.getElementById('copy').onclick=()=>{const src='<!DOCTYPE html>\n'+document.documentElement.outerHTML;navigator.clipboard.writeText(src).then(()=>{const b=document.getElementById('copy'),o=b.textContent;b.textContent='✓ Copied';setTimeout(()=>b.textContent=o,1500);});};
+
+// triangular-lattice centres within `rings` of the origin → the Flower of Life
+function centers(r,rings){
+  const pts=[], h=r*Math.sqrt(3)/2, lim=rings*r+r*0.01;
+  for(let j=-rings-1;j<=rings+1;j++)
+    for(let i=-rings-1;i<=rings+1;i++){
+      const x=(i+j*0.5)*r, y=j*h;
+      if(Math.hypot(x,y)<=lim) pts.push([x,y]);
+    }
+  return pts;
+}
+
+let t=0, last=performance.now();
+function frame(now){
+  const dt=(now-last)/1000; last=now; t+=dt;
+  const W=cv.width, H=cv.height;
+  ctx.clearRect(0,0,W,H);
+  // soft radial vignette
+  const g=ctx.createRadialGradient(W/2,H/2,0,W/2,H/2,Math.max(W,H)*0.7);
+  g.addColorStop(0,'#13100b'); g.addColorStop(1,'#0a0908');
+  ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
+
+  const rings=+ringsEl.value;
+  const base=Math.min(W,H)/( (rings+1)*2.4 );
+  const breath=1 + (+breathEl.value)/100 * 0.03*Math.sin(t*0.6);
+  const r=base*breath;
+
+  ctx.save();
+  ctx.translate(W/2,H/2);
+  ctx.rotate(t*(+spinEl.value)/100*0.05);
+
+  const gl=(+glowEl.value)/100;
+  ctx.shadowColor='rgba(231,201,135,'+(0.5+0.5*gl)+')';
+  ctx.shadowBlur=18*gl*dpr;
+  ctx.lineWidth=1.4*dpr;
+
+  const pts=centers(r,rings);
+  for(const [x,y] of pts){
+    ctx.beginPath();
+    ctx.strokeStyle='rgba(201,162,90,'+(0.55+0.35*gl)+')';
+    ctx.arc(x,y,r,0,Math.PI*2);
+    ctx.stroke();
+  }
+  // two enclosing rings (traditional border)
+  ctx.strokeStyle='rgba(231,201,135,0.7)';
+  ctx.beginPath(); ctx.arc(0,0,(rings+1)*r,0,Math.PI*2); ctx.stroke();
+  ctx.shadowBlur=0;
+  ctx.lineWidth=0.8*dpr; ctx.strokeStyle='rgba(201,162,90,0.4)';
+  ctx.beginPath(); ctx.arc(0,0,(rings+1)*r*1.04,0,Math.PI*2); ctx.stroke();
+
+  ctx.restore();
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>

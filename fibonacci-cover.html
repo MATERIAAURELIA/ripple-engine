@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #000; display: flex; align-items: center; justify-content: center; height: 100vh; }
+  canvas { display: block; }
+</style>
+</head>
+<body>
+<canvas id="c" width="1400" height="1400"></canvas>
+<script>
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+const W = 1400, H = 1400;
+const cx = W/2, cy = H/2;
+
+// Background
+ctx.fillStyle = '#060810';
+ctx.fillRect(0, 0, W, H);
+
+// Subtle radial gradient bg
+const bg = ctx.createRadialGradient(cx, cy, 0, cx, cy, 700);
+bg.addColorStop(0, '#0c1020');
+bg.addColorStop(1, '#020408');
+ctx.fillStyle = bg;
+ctx.fillRect(0, 0, W, H);
+
+const phi = (1 + Math.sqrt(5)) / 2;
+const gold = '#c8a44e';
+const goldDim = 'rgba(200, 164, 78, 0.15)';
+const goldFaint = 'rgba(200, 164, 78, 0.05)';
+
+// Draw golden spiral
+function drawSpiral(cx, cy, scale, opacity) {
+  ctx.save();
+  ctx.globalAlpha = opacity;
+  
+  let a = 0;
+  const points = [];
+  for (let t = 0; t < Math.PI * 12; t += 0.02) {
+    const r = scale * Math.pow(phi, t / (Math.PI / 2));
+    points.push([cx + r * Math.cos(t), cy + r * Math.sin(t)]);
+  }
+  
+  ctx.beginPath();
+  ctx.moveTo(points[0][0], points[0][1]);
+  for (let i = 1; i < points.length; i++) {
+    ctx.lineTo(points[i][0], points[i][1]);
+  }
+  
+  const grad = ctx.createLinearGradient(cx - scale*20, cy, cx + scale*20, cy);
+  grad.addColorStop(0, 'rgba(200, 164, 78, 0)');
+  grad.addColorStop(0.3, 'rgba(200, 164, 78, 0.6)');
+  grad.addColorStop(0.7, 'rgba(200, 164, 78, 0.9)');
+  grad.addColorStop(1, 'rgba(200, 164, 78, 0.3)');
+  
+  ctx.strokeStyle = grad;
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+  ctx.restore();
+}
+
+// Fibonacci squares
+function drawFibSquares() {
+  const fibs = [1, 1, 2, 3, 5, 8, 13, 21, 34, 55, 89, 144, 233];
+  const baseUnit = 3.8;
+  
+  // Draw rectangles following the Fibonacci tiling pattern
+  let x = cx, y = cy;
+  let dirs = [[1,0],[0,1],[-1,0],[0,-1]]; // right, down, left, up
+  let dirIdx = 0;
+  let px = cx, py = cy;
+  
+  const positions = [
+    { fib: 233, x: cx - 233*baseUnit, y: cy - 144*baseUnit, w: 233*baseUnit, h: 144*baseUnit },
+    { fib: 144, x: cx, y: cy - 144*baseUnit, w: 144*baseUnit, h: 144*baseUnit },
+    { fib: 89, x: cx, y: cy, w: 89*baseUnit, h: 89*baseUnit },
+    { fib: 55, x: cx - 55*baseUnit, y: cy, w: 55*baseUnit, h: 55*baseUnit },
+    { fib: 34, x: cx - 55*baseUnit, y: cy - 34*baseUnit, w: 34*baseUnit, h: 34*baseUnit },
+    { fib: 21, x: cx - 34*baseUnit, y: cy - 34*baseUnit, w: 21*baseUnit, h: 21*baseUnit },
+    { fib: 13, x: cx - 34*baseUnit, y: cy - 13*baseUnit, w: 13*baseUnit, h: 13*baseUnit },
+    { fib: 8, x: cx - 26*baseUnit, y: cy - 13*baseUnit, w: 8*baseUnit, h: 8*baseUnit },
+    { fib: 5, x: cx - 26*baseUnit, y: cy - 8*baseUnit, w: 5*baseUnit, h: 5*baseUnit },
+    { fib: 3, x: cx - 24*baseUnit, y: cy - 8*baseUnit, w: 3*baseUnit, h: 3*baseUnit },
+  ];
+  
+  positions.forEach(p => {
+    ctx.strokeStyle = `rgba(200, 164, 78, ${0.08 + (p.fib/233)*0.18})`;
+    ctx.lineWidth = 0.5;
+    ctx.strokeRect(p.x, p.y, p.w, p.h);
+  });
+}
+
+// Circular Fibonacci rings
+function drawRings() {
+  const fibs = [1, 2, 3, 5, 8, 13, 21, 34, 55, 89, 144, 233, 377, 610];
+  fibs.forEach((f, i) => {
+    const r = f * 1.1;
+    if (r > 700) return;
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.strokeStyle = `rgba(200, 164, 78, ${0.03 + i * 0.004})`;
+    ctx.lineWidth = 0.5;
+    ctx.stroke();
+  });
+}
+
+// Draw everything
+drawRings();
+drawFibSquares();
+
+// Main spiral — large
+drawSpiral(cx, cy, 1.5, 0.9);
+
+// Echo spirals (like the Ripple Engine)
+drawSpiral(cx, cy, 1.0, 0.3);
+drawSpiral(cx, cy, 0.618, 0.15);
+
+// Center dot
+const centerGlow = ctx.createRadialGradient(cx, cy, 0, cx, cy, 30);
+centerGlow.addColorStop(0, 'rgba(200, 164, 78, 0.9)');
+centerGlow.addColorStop(0.4, 'rgba(200, 164, 78, 0.3)');
+centerGlow.addColorStop(1, 'rgba(200, 164, 78, 0)');
+ctx.fillStyle = centerGlow;
+ctx.beginPath();
+ctx.arc(cx, cy, 30, 0, Math.PI * 2);
+ctx.fill();
+
+// Fibonacci sequence dots along the spiral
+const phi2 = (1 + Math.sqrt(5)) / 2;
+const fibNums = [1,1,2,3,5,8,13,21,34,55,89];
+fibNums.forEach((f, i) => {
+  const t = i * (Math.PI / 2);
+  const r = 1.5 * Math.pow(phi2, t / (Math.PI / 2));
+  const x = cx + r * Math.cos(t);
+  const y2 = cy + r * Math.sin(t);
+  
+  ctx.beginPath();
+  ctx.arc(x, y2, 2, 0, Math.PI * 2);
+  ctx.fillStyle = `rgba(200, 164, 78, ${0.4 + i*0.05})`;
+  ctx.fill();
+  
+  // Label
+  if (f <= 34) {
+    ctx.font = `${10 + i}px Georgia`;
+    ctx.fillStyle = `rgba(200, 164, 78, ${0.3 + i*0.06})`;
+    ctx.fillText(f, x + 5, y2 - 5);
+  }
+});
+
+// Text
+ctx.textAlign = 'center';
+ctx.font = 'bold 48px Georgia';
+ctx.fillStyle = 'rgba(200, 164, 78, 0.9)';
+ctx.letterSpacing = '6px';
+ctx.fillText('Sacred Sound', cx, H - 140);
+ctx.font = '32px Georgia';
+ctx.fillStyle = 'rgba(200, 164, 78, 0.6)';
+ctx.fillText('& Mathematics', cx, H - 95);
+ctx.font = '18px Georgia';
+ctx.fillStyle = 'rgba(200, 164, 78, 0.35)';
+ctx.fillText('1  ·  1  ·  2  ·  3  ·  5  ·  8  ·  13  ·  21  ·  34', cx, H - 52);
+</script>
+</body>
+</html>

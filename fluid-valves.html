@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fluid Valves</title>
+<style>
+  html,body{margin:0;height:100%;background:#0c0e12;overflow:hidden;font-family:-apple-system,system-ui,sans-serif;color:#2a2e36}
+  canvas{display:block;width:100vw;height:100vh}
+  #ui{position:fixed;left:16px;bottom:16px;background:rgba(15,20,30,.65);backdrop-filter:blur(12px);
+      padding:13px 15px;border-radius:14px;border:1px solid rgba(255,255,255,.08);max-width:280px;font-size:13px;color:#f3f4f6}
+  #ui h1{font-size:11px;margin:0 0 10px;font-weight:700;letter-spacing:1.5px;color:#f3f4f6;opacity:.9}
+  .row{display:flex;align-items:center;gap:10px;margin:8px 0}
+  .row label{flex:0 0 78px;opacity:.7}
+  input[type=range]{flex:1;accent-color:#e0559a}
+  button{cursor:pointer;border:0;color:#fff;padding:9px 12px;border-radius:10px;font-weight:600;font-size:12px;
+      background:linear-gradient(90deg,#e0559a,#7a6cf0);width:100%;margin-top:6px}
+  #status{opacity:.6;font-size:11px;margin-top:8px;line-height:1.4}
+  #hideBtn{position:fixed;right:16px;bottom:16px;background:rgba(15,20,30,.65);border:1px solid rgba(255,255,255,.1);
+      color:#f3f4f6;padding:8px 12px;border-radius:10px;cursor:pointer;font-size:12px;font-weight:600}
+  .hidden{display:none!important}
+  #err{position:fixed;top:10px;left:10px;color:#c0392b;font-family:monospace;font-size:12px;white-space:pre-wrap}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="ui">
+  <h1>◍ FLUID VALVES</h1>
+  <div class="row"><label>Flow</label><input id="flow" type="range" min="0" max="200" value="100"></div>
+  <div class="row"><label>Viscosity</label><input id="turb" type="range" min="0" max="200" value="45"></div>
+  <div class="row"><label>Size</label><input id="size" type="range" min="40" max="220" value="110"></div>
+  <div class="row"><label>Speed</label><input id="speed" type="range" min="5" max="200" value="55"></div>
+  <button id="audio">▶ Add mic</button>
+  <button id="load" style="background:linear-gradient(90deg,#5ab0c0,#7a6cf0)">📁 Load a track</button>
+  <input id="file" type="file" accept="audio/*" hidden>
+  <audio id="track"></audio>
+  <div id="status">Four fluid voices. Add audio — each blob breathes to its own frequency band.</div>
+</div>
+<button id="hideBtn">hide (H)</button>
+<div id="err"></div>
+<script>
+const cv=document.getElementById('c');
+const gl=cv.getContext('webgl')||cv.getContext('experimental-webgl');
+const errEl=document.getElementById('err');
+if(!gl){ errEl.textContent='WebGL not available.'; } else { gl.getExtension('OES_standard_derivatives'); }
+
+const VERT=`attribute vec2 a_pos; void main(){ gl_Position=vec4(a_pos,0.0,1.0); }`;
+const FRAG=`
+#extension GL_OES_standard_derivatives : enable
+precision highp float;
+uniform vec2 u_res; uniform float u_time, u_flow, u_turb, u_size, u_audioOn;
+uniform float u_a0,u_a1,u_a2,u_a3;
+float hash(vec2 p){ return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453); }
+float noise(vec2 p){ vec2 i=floor(p),f=fract(p);
+  float a=hash(i),b=hash(i+vec2(1.,0.)),c=hash(i+vec2(0.,1.)),d=hash(i+vec2(1.,1.));
+  vec2 u=f*f*(3.-2.*f); return mix(mix(a,b,u.x),mix(c,d,u.x),u.y); }
+float fbm(vec2 p){ float v=0.,a=.5; for(int i=0;i<5;i++){ v+=a*noise(p); p*=2.; a*=.5; } return v; }
+vec2 curl(vec2 p){ float e=.12;
+  float a=fbm(p+vec2(0.,e)),b=fbm(p-vec2(0.,e)),c=fbm(p+vec2(e,0.)),d=fbm(p-vec2(e,0.));
+  return vec2(a-b,-(c-d))/(2.*e); }
+// exponential smooth-minimum — the heart of liquid pooling
+float smin(float a, float b, float k){
+  float h=clamp(0.5+0.5*(b-a)/k,0.0,1.0);
+  return mix(b,a,h)-k*h*(1.0-h);
+}
+float valveSDF(vec2 p, vec2 ctr, float r){ return length(p-ctr)-r; }
+void main(){
+  vec2 uv=(gl_FragCoord.xy-0.5*u_res)/min(u_res.x,u_res.y);
+  float t=u_time;
+  // gentle organic wobble — kept light so the smin does the liquid work (not smoke)
+  vec2 p=uv + curl(uv*1.3 + t*0.10*u_flow)*0.045;
+  // four drifting voice-centers (GYRO A·B·C·D)
+  // fixed, evenly-spaced valve positions (standard row A·B·C·D — no drift)
+  vec2 c0=vec2(-0.60,0.0), c1=vec2(-0.20,0.0), c2=vec2(0.20,0.0), c3=vec2(0.60,0.0);
+  vec3 col0=vec3(1.0,0.34,0.66), col1=vec3(0.86,0.95,0.40),
+       col2=vec3(0.34,0.90,0.95), col3=vec3(0.56,0.46,0.96);
+  float s=u_size*0.28;
+  float r0=s*(0.50+u_a0*u_audioOn*1.2+0.13), r1=s*(0.50+u_a1*u_audioOn*1.2+0.13),
+        r2=s*(0.50+u_a2*u_audioOn*1.2+0.13), r3=s*(0.50+u_a3*u_audioOn*1.2+0.13);
+  float d0=valveSDF(p,c0,r0), d1=valveSDF(p,c1,r1), d2=valveSDF(p,c2,r2), d3=valveSDF(p,c3,r3);
+  float k=0.06 + u_turb*0.20;                           // VISCOSITY — bigger = bridges/merges from farther
+  float d=smin(smin(smin(d0,d1,k),d2,k),d3,k);           // merged liquid field (the pooling)
+  // color pools & blends at the bridges (soft-weight by each blob's nearness)
+  float kc=0.16;
+  float w0=exp(-d0/kc), w1=exp(-d1/kc), w2=exp(-d2/kc), w3=exp(-d3/kc);
+  float wt=w0+w1+w2+w3+1e-5;
+  vec3 fluid=(col0*w0+col1*w1+col2*w2+col3*w3)/wt;
+  // crisp, shiny liquid edge straight from the SDF
+  // organic inky wisp on the merged edge — soft fluid tendrils, not hard orbs
+  d += (fbm(uv*3.0 + t*0.25) - 0.5)*0.11;
+  float inner=smoothstep(0.0,-0.32,d);
+  fluid *= (0.92+0.32*inner);                      // gently luminous core (no white blow-out)
+  // dark luxury backdrop
+  vec3 bg=mix(vec3(0.04,0.05,0.08), vec3(0.09,0.11,0.16), clamp(length(uv)*0.6,0.0,1.0));
+  // soft feathered edge + outer glow halo = translucent ink, not solid eyeballs
+  float mask=smoothstep(0.06,-0.03,d);
+  float glow=smoothstep(0.34,-0.05,d)*0.45;
+  vec3 outc=mix(bg, fluid, mask);
+  outc+=fluid*glow*(1.0-mask);                     // soft glow bleed
+  // whisper-thin indigo edge (subtle, not fat rings)
+  float mB=smoothstep(0.06,-0.03,d-0.012);
+  outc.b=mix(outc.b, fluid.b*0.7+0.25, (mB-mask)*0.5);
+  gl_FragColor=vec4(outc,1.0);
+}`;
+
+function compile(type,src){ const s=gl.createShader(type); gl.shaderSource(s,src); gl.compileShader(s);
+  if(!gl.getShaderParameter(s,gl.COMPILE_STATUS)) errEl.textContent+='Shader error: '+gl.getShaderInfoLog(s); return s; }
+const prog=gl.createProgram();
+gl.attachShader(prog,compile(gl.VERTEX_SHADER,VERT));
+gl.attachShader(prog,compile(gl.FRAGMENT_SHADER,FRAG));
+gl.linkProgram(prog); gl.useProgram(prog);
+const buf=gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER,buf);
+gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,-1,1,1,1]),gl.STATIC_DRAW);
+const aloc=gl.getAttribLocation(prog,'a_pos'); gl.enableVertexAttribArray(aloc);
+gl.vertexAttribPointer(aloc,2,gl.FLOAT,false,0,0);
+const U={}; ['u_res','u_time','u_flow','u_turb','u_size','u_audioOn','u_a0','u_a1','u_a2','u_a3'].forEach(n=>U[n]=gl.getUniformLocation(prog,n));
+function resize(){ const d=Math.min(devicePixelRatio,2); cv.width=innerWidth*d; cv.height=innerHeight*d; gl.viewport(0,0,cv.width,cv.height); }
+addEventListener('resize',resize); resize();
+
+const flow=document.getElementById('flow'),turb=document.getElementById('turb'),size=document.getElementById('size'),speed=document.getElementById('speed'),status=document.getElementById('status');
+const hideBtn=document.getElementById('hideBtn');
+hideBtn.onclick=()=>document.getElementById('ui').classList.toggle('hidden');
+addEventListener('keydown',e=>{ if(e.key==='h'||e.key==='H') document.getElementById('ui').classList.toggle('hidden'); });
+
+let ac=null,analyser=null,freq=null,bands=[0,0,0,0],trackWired=false;
+function ensureCtx(){ if(!ac){ ac=new (window.AudioContext||window.webkitAudioContext)();
+  analyser=ac.createAnalyser(); analyser.fftSize=512; analyser.smoothingTimeConstant=0.82;
+  freq=new Uint8Array(analyser.frequencyBinCount); } ac.resume&&ac.resume(); }
+document.getElementById('audio').onclick=async()=>{
+  try{ ensureCtx(); const st=await navigator.mediaDevices.getUserMedia({audio:true});
+    ac.createMediaStreamSource(st).connect(analyser); status.textContent='Mic on 🎤 — four voices breathing.';
+  }catch(e){ status.textContent='Mic blocked.'; } };
+const track=document.getElementById('track'), fileInput=document.getElementById('file');
+document.getElementById('load').onclick=()=>fileInput.click();
+fileInput.onchange=()=>{ const f=fileInput.files[0]; if(!f) return; ensureCtx();
+  track.src=URL.createObjectURL(f);
+  if(!trackWired){ const sN=ac.createMediaElementSource(track); sN.connect(analyser); sN.connect(ac.destination); trackWired=true; }
+  track.loop=true; track.play(); status.textContent='▶ '+f.name+' — the valves are flowing to it.'; };
+function audio(){ if(!analyser) return; analyser.getByteFrequencyData(freq); const n=freq.length;
+  for(let b=0;b<4;b++){ let s=0; const lo=Math.floor(n*(b/4)*0.85), hi=Math.floor(n*((b+1)/4)*0.85);
+    for(let i=lo;i<hi;i++) s+=freq[i]; const v=Math.min(1,(s/(hi-lo))/150); bands[b]+=(v-bands[b])*0.25; } }
+
+let last=performance.now(), vt=0;
+function frame(now){ const dt=(now-last)/1000; last=now; vt+=dt*(+speed.value)/100; audio();
+  gl.uniform2f(U.u_res,cv.width,cv.height); gl.uniform1f(U.u_time,vt);
+  gl.uniform1f(U.u_flow,(+flow.value)/100); gl.uniform1f(U.u_turb,(+turb.value)/100);
+  gl.uniform1f(U.u_size,(+size.value)/100); gl.uniform1f(U.u_audioOn,analyser?1:0);
+  gl.uniform1f(U.u_a0,bands[0]); gl.uniform1f(U.u_a1,bands[1]); gl.uniform1f(U.u_a2,bands[2]); gl.uniform1f(U.u_a3,bands[3]);
+  gl.drawArrays(gl.TRIANGLE_STRIP,0,4); requestAnimationFrame(frame); }
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>

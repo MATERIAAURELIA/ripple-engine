@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Genesis — One Circle</title>
+<style>
+  html,body{margin:0;height:100%;overflow:hidden;background:#08070a;
+    font-family:-apple-system,system-ui,sans-serif;color:#cbb48a}
+  canvas{display:block;width:100vw;height:100vh}
+  #ui{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);display:flex;gap:10px;align-items:center}
+  button,.file{background:rgba(203,180,138,.14);border:1px solid rgba(203,180,138,.3);color:#e7d3a6;
+    padding:9px 14px;border-radius:10px;font-size:13px;cursor:pointer}
+  .file input{display:none}
+  #hint{position:fixed;left:50%;top:24px;transform:translateX(-50%);font-size:12px;opacity:.45;letter-spacing:1px}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="hint">POINT → RADIUS → CIRCUMFERENCE · sound draws the circle</div>
+<div id="ui">
+  <label class="file">▶ Load Track<input id="file" type="file" accept="audio/*"></label>
+  <button id="mic">🎤 Mic</button>
+  <button id="tap">✦ Tap to draw</button>
+  <button id="copy">⧉ Copy Code</button>
+</div>
+<script>
+const cv=document.getElementById('c'), ctx=cv.getContext('2d');
+let dpr=Math.min(devicePixelRatio||1,2);
+function resize(){ dpr=Math.min(devicePixelRatio||1,2); cv.width=innerWidth*dpr; cv.height=innerHeight*dpr; }
+addEventListener('resize',resize); resize();
+const GOLD=[201,162,90], WG=[247,235,205];
+const rgba=(c,a)=>`rgba(${c[0]},${c[1]},${c[2]},${a})`;
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+
+// one circle. prog 0→1 :  point · radius · circumference
+let prog=0, drawing=false;
+function draw(){ prog=0; drawing=true; }
+document.getElementById('tap').onclick=draw;
+document.getElementById('copy').onclick=()=>{const src='<!DOCTYPE html>\n'+document.documentElement.outerHTML;navigator.clipboard.writeText(src).then(()=>{const b=document.getElementById('copy'),o=b.textContent;b.textContent='✓ Copied';setTimeout(()=>b.textContent=o,1500);});};
+
+// audio (optional) — a loud onset draws the circle
+let actx, analyser, freq, audioOn=false, audioEl, ema=0, lastTrig=0;
+function ensure(){ if(!actx){ actx=new (window.AudioContext||window.webkitAudioContext)();
+  analyser=actx.createAnalyser(); analyser.fftSize=1024; freq=new Uint8Array(analyser.frequencyBinCount);} }
+document.getElementById('file').onchange=e=>{ const f=e.target.files[0]; if(!f)return;
+  ensure(); actx.resume(); if(audioEl)audioEl.pause();
+  audioEl=new Audio(URL.createObjectURL(f)); audioEl.loop=true;
+  const s=actx.createMediaElementSource(audioEl); s.connect(analyser); analyser.connect(actx.destination);
+  audioEl.play(); audioOn=true; };
+document.getElementById('mic').onclick=async()=>{ ensure(); actx.resume();
+  try{ const st=await navigator.mediaDevices.getUserMedia({audio:true});
+    actx.createMediaStreamSource(st).connect(analyser); audioOn=true; }catch(e){} };
+
+let t=0,last=performance.now();
+function frame(now){
+  const dt=(now-last)/1000; last=now; t+=dt;
+  const W=cv.width,H=cv.height, cx=W/2, cy=H/2;
+  const gr=ctx.createRadialGradient(cx,cy,0,cx,cy,Math.max(W,H)*0.7);
+  gr.addColorStop(0,'#100d14'); gr.addColorStop(1,'#08070a');
+  ctx.fillStyle=gr; ctx.fillRect(0,0,W,H);
+
+  let bass=0,level=0;
+  if(analyser){ analyser.getByteFrequencyData(freq);
+    for(let i=0;i<10;i++)bass+=freq[i]; bass/=10;
+    let s=0; for(let i=0;i<freq.length;i++)s+=freq[i]; level=s/freq.length/255; }
+  ema=ema*0.9+bass*0.1;
+  if(audioOn && !drawing && bass>32 && bass>ema*1.3 && now-lastTrig>500){ draw(); lastTrig=now; }
+
+  const R=Math.min(W,H)*0.30*(1+level*0.05);
+  const startA=-Math.PI/2;
+  const glow=12+30*level;
+
+  if(drawing){ prog+=dt/2.0; if(prog>=1){ prog=1; drawing=false; } }
+
+  // 1 · the point
+  const pd=clamp(prog/0.12,0,1);
+  ctx.shadowColor=rgba(WG,0.95); ctx.shadowBlur=glow*dpr;
+  ctx.fillStyle=rgba(WG,0.95);
+  ctx.beginPath(); ctx.arc(cx,cy,5*dpr*Math.max(pd,prog>=1?0.4:pd),0,Math.PI*2); ctx.fill();
+
+  // 2 · the radius
+  if(prog>0.12){
+    const rp=clamp((prog-0.12)/0.30,0,1);
+    ctx.strokeStyle=rgba(WG,0.9); ctx.lineWidth=2*dpr;
+    ctx.beginPath(); ctx.moveTo(cx,cy);
+    ctx.lineTo(cx+Math.cos(startA)*R*rp, cy+Math.sin(startA)*R*rp); ctx.stroke();
+  }
+  // 3 · the circumference + the moving point that traces it
+  if(prog>0.42){
+    const sp=clamp((prog-0.42)/0.58,0,1);
+    ctx.strokeStyle=rgba(GOLD,0.85); ctx.lineWidth=1.8*dpr;
+    ctx.beginPath(); ctx.arc(cx,cy,R,startA,startA+2*Math.PI*sp); ctx.stroke();
+    const la=startA+2*Math.PI*sp;
+    ctx.fillStyle=rgba(WG,0.95);
+    ctx.beginPath(); ctx.arc(cx+Math.cos(la)*R, cy+Math.sin(la)*R, 4*dpr,0,Math.PI*2); ctx.fill();
+  }
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>

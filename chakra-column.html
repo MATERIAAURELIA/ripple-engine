@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chakra Geometry Column</title>
+<style>
+  html,body{margin:0;height:100%;overflow:hidden;background:#070608;
+    font-family:-apple-system,system-ui,sans-serif;color:#cbb48a}
+  canvas{display:block;width:100vw;height:100vh}
+  #ui{position:fixed;left:16px;bottom:16px;background:rgba(14,12,16,.6);backdrop-filter:blur(8px);
+    padding:12px 15px;border-radius:13px;border:1px solid rgba(203,180,138,.18);font-size:13px;max-width:260px}
+  #ui h1{font-size:11px;margin:0 0 10px;letter-spacing:2px;color:#e7d3a6}
+  .row{display:flex;align-items:center;gap:10px;margin:8px 0}
+  .row label{flex:0 0 70px;opacity:.75}
+  input[type=range]{flex:1;accent-color:#cbb48a}
+  #ui small{opacity:.5;font-size:11px;display:block;margin-top:8px;line-height:1.4}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="ui">
+  <h1>◈ CHAKRA GEOMETRY COLUMN</h1>
+  <div class="row"><label>Glow</label><input id="glow" type="range" min="0" max="100" value="60"></div>
+  <div class="row"><label>Breath</label><input id="breath" type="range" min="0" max="100" value="45"></div>
+  <div class="row"><label>Spin</label><input id="spin" type="range" min="0" max="100" value="18"></div>
+  <div class="row"><label>Labels</label><input id="labels" type="range" min="0" max="1" value="1" step="1"></div>
+  <small>7 lotus-glyphs on the sushumna channel — each chakra's traditional petal count + colour. Root below, Crown above.</small>
+</div>
+<script>
+const cv=document.getElementById('c'), ctx=cv.getContext('2d');
+const glowEl=document.getElementById('glow'), breathEl=document.getElementById('breath'),
+      spinEl=document.getElementById('spin'), labelsEl=document.getElementById('labels');
+let dpr=Math.min(devicePixelRatio||1,2);
+function resize(){ dpr=Math.min(devicePixelRatio||1,2); cv.width=innerWidth*dpr; cv.height=innerHeight*dpr; }
+addEventListener('resize',resize); resize();
+
+// bottom → top : Root … Crown.  petals = traditional lotus-petal counts.
+const CHAKRAS=[
+  {name:'Root · Muladhara',    petals:4,  col:[229,72,77],   dir:1},
+  {name:'Sacral · Svadhisthana',petals:6, col:[247,107,21],  dir:-1},
+  {name:'Solar · Manipura',    petals:10, col:[245,208,32],  dir:1},
+  {name:'Heart · Anahata',     petals:12, col:[70,196,106],  dir:-1},
+  {name:'Throat · Vishuddha',  petals:16, col:[59,154,225],  dir:1},
+  {name:'Third Eye · Ajna',    petals:2,  col:[106,90,205],  dir:-1},
+  {name:'Crown · Sahasrara',   petals:24, col:[176,106,214], dir:1}, // 1000 → 24 for the eye
+];
+
+function rgba(c,a){return 'rgba('+c[0]+','+c[1]+','+c[2]+','+a+')';}
+
+let t=0, last=performance.now();
+function frame(now){
+  const dt=(now-last)/1000; last=now; t+=dt;
+  const W=cv.width, H=cv.height;
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle='#070608'; ctx.fillRect(0,0,W,H);
+
+  const gl=(+glowEl.value)/100, br=(+breathEl.value)/100, sp=(+spinEl.value)/100;
+  const showLabels=+labelsEl.value;
+  const N=CHAKRAS.length;
+  const marginY=H*0.08, usableH=H-2*marginY;
+  const spacing=usableH/(N-1);
+  const nodeR=spacing*0.36;
+  const cx=W/2;
+
+  // sushumna channel — soft vertical light
+  const chan=ctx.createLinearGradient(cx,marginY,cx,H-marginY);
+  chan.addColorStop(0,'rgba(176,106,214,0.5)');
+  chan.addColorStop(1,'rgba(229,72,77,0.5)');
+  ctx.strokeStyle=chan; ctx.lineWidth=2*dpr;
+  ctx.shadowColor='rgba(203,180,138,'+(0.4*gl)+')'; ctx.shadowBlur=20*gl*dpr;
+  ctx.beginPath(); ctx.moveTo(cx,marginY); ctx.lineTo(cx,H-marginY); ctx.stroke();
+
+  for(let i=0;i<N;i++){
+    const ch=CHAKRAS[i];
+    const y=H-marginY-i*spacing;                       // root at bottom
+    const breath=1 + br*0.05*Math.sin(t*0.7 + i*0.5);  // each breathes on its own phase
+    const r=nodeR*breath;
+    const rot=t*sp*0.25*ch.dir;
+
+    ctx.save();
+    ctx.translate(cx,y);
+    ctx.rotate(rot);
+
+    ctx.shadowColor=rgba(ch.col,0.6+0.4*gl);
+    ctx.shadowBlur=16*gl*dpr;
+    ctx.lineWidth=1.3*dpr;
+    ctx.strokeStyle=rgba(ch.col,0.55+0.35*gl);
+
+    // petal ring — N small circles arranged around centre (lotus)
+    const pr=r*0.62, ps=r*0.5;
+    for(let k=0;k<ch.petals;k++){
+      const a=k*2*Math.PI/ch.petals;
+      const px=Math.cos(a)*pr, py=Math.sin(a)*pr;
+      ctx.beginPath(); ctx.arc(px,py,ps,0,Math.PI*2); ctx.stroke();
+    }
+    // central circle + outer frame
+    ctx.beginPath(); ctx.arc(0,0,r*0.32,0,Math.PI*2); ctx.stroke();
+    ctx.lineWidth=0.9*dpr; ctx.strokeStyle=rgba(ch.col,0.35+0.25*gl);
+    ctx.beginPath(); ctx.arc(0,0,r*1.18,0,Math.PI*2); ctx.stroke();
+    ctx.restore();
+
+    // label
+    if(showLabels){
+      ctx.shadowBlur=0;
+      ctx.fillStyle=rgba(ch.col,0.85);
+      ctx.font=(12*dpr)+'px -apple-system,system-ui,sans-serif';
+      ctx.textBaseline='middle';
+      ctx.fillText(ch.name+'  ·  '+ch.petals+' petals', cx+nodeR*1.5, y);
+    }
+  }
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>

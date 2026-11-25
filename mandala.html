@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mandala Sketch — sound → geometry</title>
+<style>
+  html,body{margin:0;height:100%;background:#000;overflow:hidden;font-family:-apple-system,system-ui,sans-serif;color:#e8d8ff}
+  #c{display:block;width:100vw;height:100vh}
+  #ui{position:fixed;left:16px;bottom:16px;background:rgba(20,8,30,.55);backdrop-filter:blur(8px);
+      padding:14px 16px;border-radius:14px;border:1px solid rgba(200,120,255,.25);max-width:280px;font-size:13px}
+  #ui h1{font-size:13px;margin:0 0 8px;font-weight:600;letter-spacing:.5px;color:#d9a8ff}
+  .row{display:flex;align-items:center;gap:10px;margin:8px 0}
+  .row label{flex:0 0 70px;opacity:.8}
+  input[type=range]{flex:1;accent-color:#c264ff}
+  #start{cursor:pointer;background:linear-gradient(90deg,#8a2be2,#ff2d72);border:0;color:#fff;
+         padding:9px 14px;border-radius:10px;font-weight:600;width:100%;margin-top:4px}
+  #status{opacity:.65;font-size:11px;margin-top:8px;line-height:1.4}
+  .val{flex:0 0 28px;text-align:right;opacity:.9;font-variant-numeric:tabular-nums}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="ui">
+  <h1>◈ MANDALA SKETCH</h1>
+  <div class="row"><label>Petals</label><input id="pts" type="range" min="1" max="12" value="6"><span class="val" id="ptsv">6</span></div>
+  <div class="row"><label>Layers</label><input id="lay" type="range" min="1" max="6" value="3"><span class="val" id="layv">3</span></div>
+  <div class="row"><label>Spin</label><input id="spin" type="range" min="0" max="100" value="20"><span class="val" id="spinv">20</span></div>
+  <button id="start">▶ Start mic (sound → form)</button>
+  <div id="status">No mic yet — running on auto-pulse. Click above to let it react to real sound.</div>
+</div>
+<script>
+const cv = document.getElementById('c'), ctx = cv.getContext('2d');
+let W,H,CX,CY;
+function resize(){ W=cv.width=innerWidth*devicePixelRatio; H=cv.height=innerHeight*devicePixelRatio;
+  cv.style.width=innerWidth+'px'; cv.style.height=innerHeight+'px'; CX=W/2; CY=H/2; }
+addEventListener('resize',resize); resize();
+
+// ---- controls ----
+const pts=document.getElementById('pts'), lay=document.getElementById('lay'), spin=document.getElementById('spin');
+const ptsv=document.getElementById('ptsv'), layv=document.getElementById('layv'), spinv=document.getElementById('spinv');
+pts.oninput=()=>ptsv.textContent=pts.value; lay.oninput=()=>layv.textContent=lay.value; spin.oninput=()=>spinv.textContent=spin.value;
+
+// ---- palette: red → pink → magenta → violet → white ----
+const stops=[[255,45,90],[255,95,162],[214,51,255],[157,78,221],[235,225,255]];
+function palette(t){ // t 0..1
+  t=Math.max(0,Math.min(1,t))*(stops.length-1); const i=Math.floor(t), f=t-i;
+  const a=stops[i], b=stops[Math.min(i+1,stops.length-1)];
+  return [a[0]+(b[0]-a[0])*f, a[1]+(b[1]-a[1])*f, a[2]+(b[2]-a[2])*f].map(Math.round);
+}
+
+// ---- audio ----
+let analyser=null, freq=null, level=0, centroid=0.5;
+document.getElementById('start').onclick=async()=>{
+  try{
+    const ac=new (window.AudioContext||window.webkitAudioContext)();
+    const stream=await navigator.mediaDevices.getUserMedia({audio:true});
+    const src=ac.createMediaStreamSource(stream);
+    analyser=ac.createAnalyser(); analyser.fftSize=1024; analyser.smoothingTimeConstant=0.8;
+    src.connect(analyser); freq=new Uint8Array(analyser.frequencyBinCount);
+    document.getElementById('status').textContent='Listening 🎤 — make sound, the mandala answers.';
+  }catch(e){ document.getElementById('status').textContent='Mic blocked — staying on auto-pulse. (Reload + allow to react to sound.)'; }
+};
+function readAudio(t){
+  if(analyser){
+    analyser.getByteFrequencyData(freq);
+    let sum=0, wsum=0, tot=0;
+    for(let i=0;i<freq.length;i++){ sum+=freq[i]; wsum+=freq[i]*i; tot+=freq[i]; }
+    level = (sum/freq.length)/255;                 // 0..1 overall energy
+    centroid = tot>0 ? (wsum/tot)/freq.length : 0.5; // 0..1 brightness of sound
+  } else {
+    level = 0.25 + 0.22*Math.sin(t*1.7) + 0.12*Math.sin(t*4.1); // breathing auto-pulse
+    centroid = 0.5 + 0.4*Math.sin(t*0.6);
+  }
+}
+
+// ---- expanding rings spawned on energy peaks ----
+let rings=[], lastSpawn=0, prevLevel=0;
+function maybeSpawn(t){
+  if(level>0.32 && level-prevLevel>0.04 && t-lastSpawn>0.18){
+    rings.push({r:0, life:1, hue:centroid}); lastSpawn=t;
+  }
+  prevLevel=prevLevel*0.7+level*0.3;
+  if(rings.length>40) rings.splice(0,rings.length-40);
+}
+
+// ---- draw one N-fold petal layer at radius R ----
+function petalLayer(R, scale, N, color, alpha){
+  const [r,g,b]=color;
+  ctx.save();
+  ctx.globalCompositeOperation='lighter';
+  ctx.shadowBlur=40*scale; ctx.shadowColor=`rgba(${r},${g},${b},${alpha})`;
+  for(let i=0;i<N;i++){
+    const ang=(i/N)*Math.PI*2;
+    ctx.save(); ctx.rotate(ang);
+    const len=R, w=R*0.42*scale;
+    ctx.beginPath();
+    ctx.moveTo(0,0);
+    ctx.quadraticCurveTo(w, -len*0.55, 0, -len);     // petal outline
+    ctx.quadraticCurveTo(-w, -len*0.55, 0, 0);
+    const grd=ctx.createLinearGradient(0,0,0,-len);
+    grd.addColorStop(0,`rgba(${r},${g},${b},${alpha*0.15})`);
+    grd.addColorStop(0.6,`rgba(${r},${g},${b},${alpha*0.55})`);
+    grd.addColorStop(1,`rgba(255,255,255,${alpha*0.9})`);
+    ctx.fillStyle=grd; ctx.fill();
+    ctx.restore();
+  }
+  ctx.restore();
+}
+
+let t0=performance.now();
+function frame(now){
+  const t=(now-t0)/1000;
+  readAudio(t); maybeSpawn(t);
+
+  // dissipate: translucent black wash leaves trails
+  ctx.globalCompositeOperation='source-over';
+  ctx.fillStyle='rgba(0,0,0,0.16)'; ctx.fillRect(0,0,W,H);
+
+  const N=+pts.value, layers=+lay.value, spinRate=(+spin.value)/100;
+  const baseR=Math.min(W,H)*0.16*devicePixelRatio/devicePixelRatio;
+  ctx.save(); ctx.translate(CX,CY); ctx.rotate(t*spinRate*0.5);
+
+  // central pulsing mandala — scale driven by live level
+  const pulse=1+level*1.1;
+  for(let L=0;L<layers;L++){
+    const R=baseR*(1+L*0.7)*pulse;
+    const col=palette(centroid*0.7 + L*0.08 + 0.1*Math.sin(t*0.5+L));
+    petalLayer(R, 1-L*0.12, N, col, 0.5 - L*0.05);
+    ctx.rotate(Math.PI/N); // offset each layer for interference/depth
+  }
+
+  // expanding rings (the dissipating echoes)
+  for(const ring of rings){
+    ring.r += (4+level*10)*devicePixelRatio; ring.life-=0.012;
+    const col=palette(ring.hue);
+    petalLayer(baseR + ring.r, 0.5*ring.life+0.2, N, col, ring.life*0.5);
+  }
+  rings=rings.filter(r=>r.life>0);
+
+  ctx.restore();
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
