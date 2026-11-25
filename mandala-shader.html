@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Heart Portal — evolving symmetry</title>
+<style>
+  html,body{margin:0;height:100%;background:#000;overflow:hidden;font-family:-apple-system,system-ui,sans-serif;color:#e8d8ff}
+  canvas{display:block;width:100vw;height:100vh}
+  #ui{position:fixed;left:16px;bottom:16px;background:rgba(14,5,26,.5);backdrop-filter:blur(8px);
+      padding:14px 16px;border-radius:14px;border:1px solid rgba(200,140,255,.2);max-width:300px;font-size:13px}
+  #ui h1{font-size:12px;margin:0 0 10px;font-weight:600;letter-spacing:1px;color:#e0b0ff}
+  .row{display:flex;align-items:center;gap:10px;margin:9px 0}
+  .row label{flex:0 0 88px;opacity:.8}
+  input[type=range]{flex:1;accent-color:#c264ff}
+  .val{flex:0 0 30px;text-align:right;opacity:.9;font-variant-numeric:tabular-nums}
+  button{cursor:pointer;border:0;color:#fff;padding:9px 12px;border-radius:10px;font-weight:600;font-size:12px}
+  #evolve{background:linear-gradient(90deg,#3a1c71,#c264ff);width:100%;margin-top:4px}
+  #evolve.on{background:linear-gradient(90deg,#ff2d72,#ffb347)}
+  #audio{background:rgba(180,120,255,.15);width:100%;margin-top:6px;border:1px solid rgba(200,140,255,.28)}
+  #status{opacity:.6;font-size:11px;margin-top:8px;line-height:1.4}
+  #err{position:fixed;top:10px;left:10px;color:#ff8080;font-family:monospace;font-size:12px;white-space:pre-wrap}
+  #apanel{position:fixed;right:16px;top:16px;background:rgba(14,5,26,.5);backdrop-filter:blur(8px);
+      padding:13px 15px;border-radius:14px;border:1px solid rgba(200,140,255,.2);width:190px;
+      font-size:10px;letter-spacing:1px;color:#d9a8ff}
+  #apanel h2{font-size:10px;margin:0 0 10px;font-weight:600;letter-spacing:1.5px;color:#e0b0ff;opacity:.85}
+  .ab{margin:7px 0}
+  .ab span{display:block;margin-bottom:3px;opacity:.65}
+  .track{height:7px;background:rgba(255,255,255,.07);border-radius:4px;overflow:hidden}
+  .fill{height:100%;width:0%;background:linear-gradient(90deg,#8a2be2,#ff2d72);border-radius:4px;transition:width .05s}
+  #spectrum{display:flex;align-items:flex-end;gap:2px;height:42px;margin-top:11px}
+  #spectrum>div{flex:1;background:linear-gradient(180deg,#ff5fa2,#6a0dad);border-radius:2px 2px 0 0;height:2px}
+  #arctrl{margin-top:12px;border-top:1px solid rgba(200,140,255,.15);padding-top:10px}
+  .ar{display:flex;align-items:center;gap:8px;margin:7px 0}
+  .ar label{flex:0 0 76px;opacity:.7}
+  .ar input{flex:1;accent-color:#c264ff}
+  #hideBtn{position:fixed;right:16px;bottom:16px;z-index:20;background:rgba(20,8,30,.55);
+      border:1px solid rgba(200,140,255,.3);color:#d9a8ff;padding:8px 12px;border-radius:10px;
+      cursor:pointer;font-size:12px;font-weight:600}
+  .hidden{display:none!important}
+</style>
+</head>
+<body>
+<div id="hpnav" style="position:fixed;top:12px;left:50%;transform:translateX(-50%);z-index:9999;display:flex;gap:4px;background:rgba(14,5,26,.55);backdrop-filter:blur(8px);padding:6px;border-radius:12px;border:1px solid rgba(200,140,255,.2);font:12px -apple-system,system-ui,sans-serif"><a href="mandala-shader.html" style="color:#fff;text-decoration:none;padding:6px 12px;border-radius:8px;letter-spacing:.5px;background:linear-gradient(90deg,#3a1c71,#c264ff);">Heart Portal</a><a href="mandala-shader-v2.html" style="color:#c9a8ff;text-decoration:none;padding:6px 12px;border-radius:8px;letter-spacing:.5px;">Cinematic v2</a><a href="sacred-geometry.html" style="color:#c9a8ff;text-decoration:none;padding:6px 12px;border-radius:8px;letter-spacing:.5px;">Sacred Geometry</a></div>
+<canvas id="c"></canvas>
+<div id="ui">
+  <h1>◈ HEART PORTAL — EVOLVING SYMMETRY</h1>
+  <div class="row"><label>Points</label><input id="pts" type="range" min="1" max="12" value="6" step="1"><span class="val" id="ptsv">6</span></div>
+  <div class="row"><label>Evolve hold</label><input id="hold" type="range" min="1" max="60" value="24"><span class="val" id="holdv">24</span></div>
+  <div class="row"><label>Warp / flow</label><input id="morph" type="range" min="0" max="100" value="40"><span class="val" id="morphv">40</span></div>
+  <div class="row"><label>Speed</label><input id="speed" type="range" min="5" max="150" value="40"><span class="val" id="speedv">40</span></div>
+  <div class="row"><label>Zoom</label><input id="zoom" type="range" min="30" max="300" value="100"><span class="val" id="zoomv">100</span></div>
+  <div class="row"><label>Hue shift</label><input id="hue" type="range" min="0" max="360" value="0"><span class="val" id="huev">0</span></div>
+  <div class="row"><label>Rotate</label><input id="rot" type="range" min="0" max="360" value="0"><span class="val" id="rotv">0</span></div>
+  <div class="row"><label>Structure</label><input id="crisp" type="range" min="0" max="100" value="40"><span class="val" id="crispv">40</span></div>
+  <button id="snap">⊕ Snap symmetric (upright)</button>
+  <button id="evolve">⟳ Evolve 1 → N → 1</button>
+  <button id="auto" style="background:linear-gradient(90deg,#0a7d6b,#2a6fd8)">✧ Auto evolve (generative)</button>
+  <button id="audio">▶ Add mic</button>
+  <button id="load">📁 Load a track</button>
+  <input id="file" type="file" accept="audio/*" hidden>
+  <audio id="track"></audio>
+  <div class="row" id="transport" style="display:none;gap:8px">
+    <button id="pp" style="flex:0 0 auto;padding:6px 11px">⏸</button>
+    <button id="stp" style="flex:0 0 auto;padding:6px 11px;background:rgba(180,120,255,.18)">⏹</button>
+    <input id="seek" type="range" min="0" max="1000" value="0" style="flex:1">
+  </div>
+  <div id="status">Pick Points to set the portal. Hit Evolve to watch it grow 1 → N → 1.</div>
+</div>
+<div id="apanel">
+  <h2>◈ AUDIO REACTIVE</h2>
+  <div class="ab"><span>BASS → glow / breath</span><div class="track"><div id="bassbar" class="fill"></div></div></div>
+  <div class="ab"><span>TREBLE → warp / stir</span><div class="track"><div id="trebbar" class="fill"></div></div></div>
+  <div id="spectrum"></div>
+  <div id="arctrl">
+    <div class="ar"><label>Sensitivity</label><input id="sens" type="range" min="20" max="300" value="100"></div>
+    <div class="ar"><label>Bass → glow</label><input id="glow" type="range" min="0" max="200" value="90"></div>
+    <div class="ar"><label>Bass → warp</label><input id="bwarp" type="range" min="0" max="300" value="120"></div>
+    <div class="ar"><label>Treble → warp</label><input id="twarp" type="range" min="0" max="300" value="100"></div>
+    <div class="ar"><label>Smoothing</label><input id="smooth" type="range" min="0" max="100" value="60"></div>
+  </div>
+</div>
+<button id="hideBtn">hide panels ⌄ (H)</button>
+<div id="err"></div>
+<script>
+const cv=document.getElementById('c');
+const gl=cv.getContext('webgl')||cv.getContext('experimental-webgl');
+const errEl=document.getElementById('err');
+if(!gl){ errEl.textContent='WebGL not available.'; }
+
+const VERT=`attribute vec2 a_pos; void main(){ gl_Position=vec4(a_pos,0.0,1.0); }`;
+const FRAG=`
+precision highp float;
+uniform vec2 u_res;
+uniform float u_time;
+uniform float u_sym;     // current symmetry (eases between integers)
+uniform float u_morph;   // warp / flow amount 0..~1
+uniform float u_level;    // audio bass 0..1
+uniform float u_treble;   // audio treble 0..1
+uniform float u_glowReact; // bass -> glow amount (adjustable)
+uniform float u_warpReact; // bass -> warp amount (adjustable)
+uniform float u_zoom;      // pattern zoom (1 = default)
+uniform float u_trebReact; // treble -> warp stir amount
+uniform float u_audioOn;
+uniform float u_hue;     // hue rotation (radians)
+uniform float u_rot;     // mandala orientation (radians)
+uniform float u_crisp;   // 0 = fog, 1 = sharp geometric petals
+#define PI 3.14159265359
+
+vec3 hueShift(vec3 col, float a){           // rotate hue around luminance axis
+  const vec3 k=vec3(0.57735);
+  float c=cos(a), s=sin(a);
+  return col*c + cross(k,col)*s + k*dot(k,col)*(1.0-c);
+}
+
+float hash(vec2 p){ return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453); }
+float noise(vec2 p){
+  vec2 i=floor(p), f=fract(p);
+  float a=hash(i), b=hash(i+vec2(1.0,0.0)), c=hash(i+vec2(0.0,1.0)), d=hash(i+vec2(1.0,1.0));
+  vec2 u=f*f*(3.0-2.0*f);
+  return mix(mix(a,b,u.x),mix(c,d,u.x),u.y);
+}
+float fbm(vec2 p){ float v=0.0,amp=0.5; for(int i=0;i<4;i++){ v+=amp*noise(p); p*=2.0; amp*=0.5; } return v; }
+vec2 warp(vec2 p,float t,float amt){
+  vec2 q=vec2(fbm(p+vec2(0.0,t*0.10)), fbm(p+vec2(5.2,1.3)-t*0.08));
+  return vec2(fbm(p+amt*q+vec2(1.7,9.2)), fbm(p+amt*q+vec2(8.3,2.8)));
+}
+// cosmic heart-portal palette: gold heart -> pink -> magenta -> purple -> deep indigo
+vec3 palette(float t){
+  t=clamp(t,0.0,1.0);
+  vec3 gold=vec3(1.0,0.82,0.42), pink=vec3(1.0,0.45,0.70), mag=vec3(0.80,0.16,0.62),
+       pur=vec3(0.34,0.10,0.60), ind=vec3(0.06,0.03,0.26);
+  if(t<0.25) return mix(gold,pink,t/0.25);
+  if(t<0.50) return mix(pink,mag,(t-0.25)/0.25);
+  if(t<0.75) return mix(mag,pur,(t-0.50)/0.25);
+  return mix(pur,ind,(t-0.75)/0.25);
+}
+
+// angular pattern for ONE integer symmetry N — so we can crossfade between folds (seamless 1→2→3)
+float structureFor(float N, vec2 uv, float t){
+  float r=length(uv);
+  float rz=r/max(u_zoom,0.05);
+  float warpAmt=u_morph*(1.0+u_level*u_warpReact*u_audioOn+u_treble*u_trebReact*u_audioOn);
+  float ang=atan(uv.y,uv.x)+u_rot;
+  float seg=2.0*PI/N;
+  float fa=mod(ang,seg); fa=abs(fa-seg*0.5);
+  float lr=log(rz+0.03);
+  vec2 base=vec2(fa*3.0, lr*1.6 - t*0.12);
+  vec2 w=warp(base*1.3, t, 3.0*warpAmt+0.5);
+  float dens=fbm(base*2.2 + 4.0*w);
+  float soft=smoothstep(0.40,0.92,dens);
+  float detail=5.0+u_crisp*13.0;
+  float lw=mix(0.42,0.06,u_crisp);
+  float dl=abs(fract(dens*detail)-0.5);
+  float lines=smoothstep(lw, lw*0.3, dl);
+  float spokes=smoothstep(0.045,0.0,fa);
+  float rd=fract(rz*3.5); float rings=smoothstep(0.05,0.0,min(rd,1.0-rd));
+  float skeleton=max(spokes,rings)*smoothstep(1.3,0.05,r);
+  return u_crisp<0.45 ? mix(skeleton,soft,smoothstep(0.0,0.45,u_crisp))
+                      : mix(soft,lines,smoothstep(0.45,1.0,u_crisp));
+}
+
+void main(){
+  vec2 uv=(gl_FragCoord.xy-0.5*u_res)/min(u_res.x,u_res.y);
+  float t=u_time;
+  float Nf=max(u_sym,1.0);
+  float r=length(uv);
+  float rz=r/max(u_zoom,0.05);
+  // SMOOTH symmetry: crossfade between integer folds → seamless 1 → 2 → 3 (and home to the One)
+  float Nlo=floor(Nf), Nhi=ceil(Nf);
+  float structure=mix(structureFor(Nlo,uv,t), structureFor(Nhi,uv,t), smoothstep(0.0,1.0,fract(Nf)));
+  // central portal core + fade to black
+  float core=exp(-r*r*4.5);
+  float body=smoothstep(1.35,0.05,r);
+  float intensity=(structure*0.95 + core*0.85)*body;
+  intensity*=(1.0 - 0.15*u_audioOn + u_level*u_glowReact*u_audioOn);  // bass breathes the glow
+
+  // color radiates: golden heart at center -> indigo at the rim, slow time breath
+  float ct=clamp(rz*0.95 - 0.06*sin(t*0.18), 0.0, 1.0);
+  vec3 col=palette(ct)*intensity;
+  col+=vec3(1.0,0.85,0.5)*core*(0.5+0.3*sin(t*0.3));   // golden heart pulse
+  col*=(0.9+0.1*sin(t*0.25));
+  if(u_hue>0.001) col=hueShift(col,u_hue);
+  gl_FragColor=vec4(col,1.0);
+}`;
+
+function compile(type,src){ const s=gl.createShader(type); gl.shaderSource(s,src); gl.compileShader(s);
+  if(!gl.getShaderParameter(s,gl.COMPILE_STATUS)) errEl.textContent+='Shader error: '+gl.getShaderInfoLog(s); return s; }
+const prog=gl.createProgram();
+gl.attachShader(prog,compile(gl.VERTEX_SHADER,VERT));
+gl.attachShader(prog,compile(gl.FRAGMENT_SHADER,FRAG));
+gl.linkProgram(prog); gl.useProgram(prog);
+const buf=gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER,buf);
+gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,-1,1,1,1]),gl.STATIC_DRAW);
+const aloc=gl.getAttribLocation(prog,'a_pos'); gl.enableVertexAttribArray(aloc);
+gl.vertexAttribPointer(aloc,2,gl.FLOAT,false,0,0);
+const U={}; ['u_res','u_time','u_sym','u_morph','u_level','u_treble','u_audioOn','u_hue','u_rot','u_crisp','u_glowReact','u_warpReact','u_zoom','u_trebReact'].forEach(n=>U[n]=gl.getUniformLocation(prog,n));
+
+function resize(){ const d=Math.min(devicePixelRatio,2); cv.width=innerWidth*d; cv.height=innerHeight*d; gl.viewport(0,0,cv.width,cv.height); }
+addEventListener('resize',resize); resize();
+
+const pts=document.getElementById('pts'),hold=document.getElementById('hold'),morph=document.getElementById('morph'),speed=document.getElementById('speed'),status=document.getElementById('status');
+const hue=document.getElementById('hue'), rot=document.getElementById('rot'), crisp=document.getElementById('crisp'), zoom=document.getElementById('zoom');
+pts.oninput=()=>ptsv.textContent=pts.value; hold.oninput=()=>holdv.textContent=hold.value; morph.oninput=()=>morphv.textContent=morph.value; speed.oninput=()=>speedv.textContent=speed.value; hue.oninput=()=>huev.textContent=hue.value; rot.oninput=()=>rotv.textContent=rot.value; crisp.oninput=()=>crispv.textContent=crisp.value; zoom.oninput=()=>zoomv.textContent=zoom.value;
+// snap: align current N-fold so a mirror axis is vertical (upright + bilaterally symmetric)
+document.getElementById('snap').onclick=()=>{ const N=Math.max(1,Math.round(currentN)); const d=Math.round(90%(180/N)); rot.value=d; rotv.textContent=d; };
+
+// audio-reactive meter panel
+const bassbar=document.getElementById('bassbar'), trebbar=document.getElementById('trebbar'), spectrum=document.getElementById('spectrum');
+const NB=22, bars=[]; for(let i=0;i<NB;i++){ const d=document.createElement('div'); spectrum.appendChild(d); bars.push(d); }
+const sensEl=document.getElementById('sens'), glowEl=document.getElementById('glow'), warpEl=document.getElementById('bwarp'), trebEl=document.getElementById('twarp'), smoothEl=document.getElementById('smooth');
+function updateMeters(){
+  bassbar.style.width=(level*100).toFixed(0)+'%'; trebbar.style.width=(treble*100).toFixed(0)+'%';
+  if(freq){ for(let i=0;i<NB;i++){ const v=freq[Math.floor(i/NB*freq.length*0.8)]/255; bars[i].style.height=(2+v*38).toFixed(0)+'px'; } }
+}
+// hide/show panels (performance mode): button or press H
+const hideBtn=document.getElementById('hideBtn');
+function toggleUI(){ const h=document.getElementById('ui').classList.toggle('hidden'); document.getElementById('apanel').classList.toggle('hidden'); hideBtn.textContent=h?'show panels ⌃ (H)':'hide panels ⌄ (H)'; }
+hideBtn.onclick=toggleUI;
+addEventListener('keydown',e=>{ if(e.key==='h'||e.key==='H') toggleUI(); });
+
+let currentN=+pts.value, targetN=+pts.value, evolving=false, evDir=1, evClock=0;
+const evBtn=document.getElementById('evolve');
+evBtn.onclick=()=>{ evolving=!evolving; evBtn.classList.toggle('on',evolving);
+  status.textContent=evolving?'Evolving — watch it climb 1 → N then dissolve back.':'Holding. Pick Points to set the portal.'; };
+// generative auto mode: symmetry breathes 1 → N → 1 (home to the One), zoom/rotate/hue drift on their own
+let auto=false; const autoBtn=document.getElementById('auto');
+autoBtn.onclick=()=>{ auto=!auto; autoBtn.textContent=auto?'✧ Auto evolving… (click to stop)':'✧ Auto evolve (generative)';
+  status.textContent=auto?'✧ Generative — symmetry breathes 1 → N → 1, zoom/rotate/hue drift on their own.':'Holding.'; };
+
+let ac=null,analyser=null,freq=null,level=0,treble=0,trackWired=false;
+function ensureCtx(){ if(!ac){ ac=new (window.AudioContext||window.webkitAudioContext)();
+  analyser=ac.createAnalyser(); analyser.fftSize=512; analyser.smoothingTimeConstant=0.85;
+  freq=new Uint8Array(analyser.frequencyBinCount); } ac.resume&&ac.resume(); }
+
+// mic (tap only — never routed to speakers, so no feedback)
+document.getElementById('audio').onclick=async()=>{
+  try{ ensureCtx(); const st=await navigator.mediaDevices.getUserMedia({audio:true});
+    ac.createMediaStreamSource(st).connect(analyser);
+    status.textContent='Mic on 🎤 — bass breathes the portal, treble stirs the warp.';
+  }catch(e){ status.textContent='Mic blocked — staying on pure math.'; }
+};
+
+// load an audio file → plays out loud AND drives the portal
+const track=document.getElementById('track'), fileInput=document.getElementById('file');
+document.getElementById('load').onclick=()=>fileInput.click();
+fileInput.onchange=()=>{
+  const f=fileInput.files[0]; if(!f) return;
+  ensureCtx();
+  track.src=URL.createObjectURL(f);
+  if(!trackWired){ const s=ac.createMediaElementSource(track);
+    s.connect(analyser); s.connect(ac.destination); trackWired=true; }  // analyser = tap, dest = audible
+  track.loop=true; track.play();
+  transport.style.display='flex'; pp.textContent='⏸';
+  status.textContent='▶ '+f.name+' — the portal is breathing to your track.';
+};
+// transport: play/pause, stop, scrubber
+const pp=document.getElementById('pp'), stp=document.getElementById('stp'), seek=document.getElementById('seek'), transport=document.getElementById('transport');
+let seeking=false;
+pp.onclick=()=>{ if(track.paused){ track.play(); pp.textContent='⏸'; } else { track.pause(); pp.textContent='▶'; } };
+stp.onclick=()=>{ track.pause(); track.currentTime=0; pp.textContent='▶'; };
+seek.oninput=()=>{ seeking=true; };
+seek.onchange=()=>{ if(track.duration) track.currentTime=seek.value/1000*track.duration; seeking=false; };
+track.ontimeupdate=()=>{ if(!seeking && track.duration) seek.value=(track.currentTime/track.duration)*1000; };
+function audio(){ if(!analyser) return; analyser.getByteFrequencyData(freq); let b=0,tr=0; const n=freq.length;
+  for(let i=0;i<n*0.15;i++) b+=freq[i]; for(let i=Math.floor(n*0.5);i<n;i++) tr+=freq[i];
+  const g=(+sensEl.value)/100;
+  const tb=Math.min(1,(b/(n*0.15))/170*g), tt=Math.min(1,(tr/(n*0.5))/140*g);
+  const ease=0.5-(+smoothEl.value)/100*0.46;          // high smoothing = slower, gentler response
+  level += (tb-level)*ease; treble += (tt-treble)*ease; }
+
+let last=performance.now(), vt=0;
+function frame(now){
+  const dt=(now-last)/1000; last=now; vt += dt*(+speed.value)/100; const t=vt; audio(); updateMeters();
+  const peak=+pts.value;
+  if(auto){
+    currentN = 1 + (peak-1)*(0.5-0.5*Math.cos(vt*0.04));          // breathe 1 → N → 1 (out from / home to the One)
+    const z=Math.round(100+70*Math.sin(vt*0.025)); zoom.value=z; zoomv.textContent=z;
+    const rr=Math.round((vt*6)%360); rot.value=rr; rotv.textContent=rr;
+    const hh=Math.round((vt*3)%360); hue.value=hh; huev.textContent=hh;
+    ptsv.textContent=currentN.toFixed(1);
+  } else {
+    if(evolving){ evClock+=dt; const holdT=(+hold.value)/10;
+      if(evClock>=holdT){ evClock=0; targetN+=evDir;
+        if(targetN>=peak){ targetN=peak; evDir=-1; } if(targetN<=1){ targetN=1; evDir=1; } }
+      ptsv.textContent='→'+targetN;
+    } else { targetN=peak; }
+    currentN += (targetN-currentN)*Math.min(1,dt*3.0);
+  }
+
+  gl.uniform2f(U.u_res,cv.width,cv.height);
+  gl.uniform1f(U.u_time,t);
+  gl.uniform1f(U.u_sym,currentN);
+  gl.uniform1f(U.u_morph,(+morph.value)/100);
+  gl.uniform1f(U.u_level,level);
+  gl.uniform1f(U.u_treble,treble);
+  gl.uniform1f(U.u_audioOn,analyser?1:0);
+  gl.uniform1f(U.u_hue,(+hue.value)/360*6.28318);
+  gl.uniform1f(U.u_rot,(+rot.value)/360*6.28318);
+  gl.uniform1f(U.u_crisp,(+crisp.value)/100);
+  gl.uniform1f(U.u_glowReact,(+glowEl.value)/100);
+  gl.uniform1f(U.u_warpReact,(+warpEl.value)/100);
+  gl.uniform1f(U.u_zoom,(+zoom.value)/100);
+  gl.uniform1f(U.u_trebReact,(+trebEl.value)/100);
+  gl.drawArrays(gl.TRIANGLE_STRIP,0,4);
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>

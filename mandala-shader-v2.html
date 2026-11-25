@@ -72,6 +72,7 @@
   <button id="audio">▶ Add mic</button>
   <button id="load">📁 Load a track</button>
   <input id="file" type="file" accept="audio/*" hidden>
+  <select id="samples" style="width:100%;margin-top:6px;padding:7px;border-radius:9px;background:rgba(14,5,26,.7);color:#e8d8ff;border:1px solid rgba(200,140,255,.3)"><option value="">♫ Sample track (Perpetual Movement)…</option><option value="../perpetual-movement/l1/level1-demo.mp3">L1</option><option value="../perpetual-movement/level1b/level1b-preview.mp3">L1b · elements tide</option><option value="../perpetual-movement/level7/level7-demo.mp3">L7</option><option value="../perpetual-movement/level8/level8-demo.mp3">L8</option><option value="../perpetual-movement/level10/level10-demo.mp3">L10 · singing bowls</option><option value="../perpetual-movement/level11/level11-preview.mp3">L11 · Koshi + RAV</option><option value="../perpetual-movement/level12/level12-preview.mp3">L12 · slow piano</option><option value="../perpetual-movement/level13/level13-preview.mp3">L13 · native flute</option><option value="../perpetual-movement/level14/level14-preview.mp3">L14 · didge + Koshi</option><option value="../perpetual-movement/level15/level15-preview.mp3">L15 · drone + ball drop</option></select>
   <audio id="track"></audio>
   <div class="row" id="transport" style="display:none;gap:8px">
     <button id="pp" style="flex:0 0 auto;padding:6px 11px">⏸</button>
@@ -260,16 +261,20 @@ document.getElementById('audio').onclick=async()=>{
 };
 const track=document.getElementById('track'), fileInput=document.getElementById('file');
 document.getElementById('load').onclick=()=>fileInput.click();
-fileInput.onchange=()=>{
-  const f=fileInput.files[0]; if(!f) return;
+function playSrc(url,name){
   ensureCtx();
-  track.src=URL.createObjectURL(f);
+  track.src=url;
   if(!trackWired){ const s=ac.createMediaElementSource(track);
     s.connect(analyser); s.connect(ac.destination); trackWired=true; }
   track.loop=true; track.play();
   transport.style.display='flex'; pp.textContent='⏸';
-  status.textContent='▶ '+f.name+' — the portal breathes to your track.';
-};
+  status.textContent='▶ '+name+' — the portal breathes to your track.';
+}
+fileInput.onchange=()=>{ const f=fileInput.files[0]; if(!f) return; playSrc(URL.createObjectURL(f),f.name); };
+const samples=document.getElementById('samples');
+try{ const last=localStorage.getItem('hp-sample'); if(last) samples.value=last; }catch(e){}
+samples.onchange=()=>{ if(!samples.value) return; try{localStorage.setItem('hp-sample',samples.value)}catch(e){}
+  playSrc(samples.value, samples.options[samples.selectedIndex].text); };
 const pp=document.getElementById('pp'), stp=document.getElementById('stp'), seek=document.getElementById('seek'), transport=document.getElementById('transport');
 let seeking=false;
 pp.onclick=()=>{ if(track.paused){ track.play(); pp.textContent='⏸'; } else { track.pause(); pp.textContent='▶'; } };
