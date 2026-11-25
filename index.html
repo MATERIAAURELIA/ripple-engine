@@ -759,6 +759,9 @@
       <span style="font-size:9px; color:#666;" title="voice B can send on its own channel in 2-voice mode">B→</span>
       <select id="midiout-chb" onchange="midiOut.chB=this.value===''?-1:parseInt(this.value)-1" style="background:#12121e;color:#8ba4d4;border:1px solid #2a2a3a;padding:3px 4px;font-size:10px;font-family:monospace;border-radius:3px;"></select>
       <button id="midiout-audio-btn" onclick="toggleInternalAudio()" title="toggle the internal sine voice — off = MIDI-only (drive Ableton)" style="padding:3px 8px;font-size:9px;font-family:monospace;cursor:pointer;border-radius:3px;border:1px solid #c8a44e;background:#3a2f18;color:#e0b45e;">🔊 synth</button>
+      <span style="font-size:9px; color:#666;" title="internal synth output volume — does not affect MIDI out">vol</span>
+      <input type="range" id="master-vol" min="0" max="1" step="0.01" value="0.5" oninput="setMasterVol(this.value)" title="synth output volume (internal voice only — MIDI out is unaffected)" style="width:60px; -webkit-appearance:none; height:3px; background:#1a1a2a; border:none; outline:none;">
+      <span id="master-vol-val" style="font-size:10px; color:#e0b45e; font-weight:bold; min-width:24px;">.50</span>
       <span id="midiout-status" style="font-size:9px; color:#555; font-family:monospace;">○ off</span>
     </div>
   </div>
@@ -3626,16 +3629,60 @@ function midiOutNote(midi, velocity, delayMs, durMs, voiceTag) {
 }
 function midiOutAllOff() {
   if (!midiOut.port) return;
-  for (let ch = 0; ch < 16; ch++) _midiSend([0xB0 | ch, 123, 0]); // CC123 all notes off
+  // FLUSH the queue first: echo taps were sent ahead with future timestamps, so an
+  // all-notes-off alone can't stop them — the queued note-ons fire AFTER it. port.clear()
+  // discards every unsent message (the whole echo trail) so nothing new re-triggers.
+  try { if (typeof midiOut.port.clear === 'function') midiOut.port.clear(); } catch (e) {}
+  for (let ch = 0; ch < 16; ch++) {
+    _midiSend([0xB0 | ch, 123, 0]); // CC123 all notes off
+    _midiSend([0xB0 | ch, 120, 0]); // CC120 all sound off (kills anything still ringing)
+  }
 }
 function toggleInternalAudio() {
   midiOut.internalAudio = !midiOut.internalAudio;
+  // HARD MUTE the whole browser bus when synth is off, so nothing bleeds into a
+  // MIDI recording: playTone already self-silences, but the reverb TAIL and the
+  // nature bed (which routes straight to destination, bypassing masterGain) do not.
+  // MIDI out is a separate path (midiOut.port.send) and is unaffected — it keeps flowing.
+  if (audioCtx) {
+    const t = audioCtx.currentTime;
+    if (masterGain) {
+      const target = midiOut.internalAudio
+        ? parseFloat(document.getElementById('master-vol')?.value || '0.5')
+        : 0.0;
+      masterGain.gain.cancelScheduledValues(t);
+      masterGain.gain.setValueAtTime(masterGain.gain.value, t);
+      masterGain.gain.linearRampToValueAtTime(target, t + 0.03);
+    }
+    if (natGainNode) {
+      const natTarget = midiOut.internalAudio
+        ? parseFloat(document.getElementById('nat-gain')?.value || '0.35')
+        : 0.0;
+      natGainNode.gain.cancelScheduledValues(t);
+      natGainNode.gain.setValueAtTime(natGainNode.gain.value, t);
+      natGainNode.gain.linearRampToValueAtTime(natTarget, t + 0.03);
+    }
+  }
   const b = document.getElementById('midiout-audio-btn');
   if (b) {
     b.textContent = midiOut.internalAudio ? '🔊 synth' : '🔇 synth';
     b.style.background = midiOut.internalAudio ? '#3a2f18' : '#12121e';
     b.style.color = midiOut.internalAudio ? '#e0b45e' : '#666';
     b.style.borderColor = midiOut.internalAudio ? '#c8a44e' : '#2a2a3a';
+  }
+}
+// Master output volume for the internal synth voice. MIDI out is a separate path
+// and is never touched by this. If synth is currently muted (synth-off), we just
+// remember the value — toggleInternalAudio() reads it back when the synth returns.
+function setMasterVol(v) {
+  const val = Math.max(0, Math.min(1, parseFloat(v)));
+  const lbl = document.getElementById('master-vol-val');
+  if (lbl) lbl.textContent = (val === 1 ? '1.0' : val.toFixed(2).replace(/^0/, ''));
+  if (masterGain && audioCtx && typeof midiOut !== 'undefined' && midiOut && midiOut.internalAudio) {
+    const t = audioCtx.currentTime;
+    masterGain.gain.cancelScheduledValues(t);
+    masterGain.gain.setValueAtTime(masterGain.gain.value, t);
+    masterGain.gain.linearRampToValueAtTime(val, t + 0.02);
   }
 }
 
@@ -4788,9 +4835,12 @@ function panicStop() {
     b.textContent = (id === 'gen-tab-play') ? '▶ START' : (id === 's-gen-start' ? '▶' : '▶ Start');
     b.classList.remove('recording', 'active');
   });
-  // 2. hush external instruments if MIDI-out exists
+  // 2. hush external instruments if MIDI-out exists (flushes queued echo MIDI too)
   if (typeof midiOutAllOff === 'function') midiOutAllOff();
   if (typeof genCascadeClear === 'function') genCascadeClear();
+  // 2b. stop the self-looping nature bed so its timer can't respawn on a dead context
+  if (typeof natStop === 'function') { try { natStop(); } catch (e) {} }
+  if (typeof natTimer !== 'undefined' && natTimer) { clearTimeout(natTimer); natTimer = null; }
   // 3. kill all audio — closing the context stops every scheduled oscillator instantly
   if (!audioCtx) return;
   try { audioCtx.close(); } catch (e) {}
